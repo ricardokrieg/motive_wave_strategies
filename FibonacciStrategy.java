@@ -30,6 +30,7 @@ public class FibonacciStrategy extends Study {
 	
 	List<SwingPoint> swingsLTF = new ArrayList<SwingPoint>();
 	List<Integer> swingsTTFKeys = new ArrayList<Integer>();
+	int currentWave = 0;
 	
 	public void initialize(Defaults defaults) {
 	    SettingsDescriptor sd = new SettingsDescriptor();
@@ -43,16 +44,21 @@ public class FibonacciStrategy extends Study {
 	    tab.addGroup(inputs);
 	    
 	    SettingGroup lines = new SettingGroup("Display");
-	    lines.addRow(new PathDescriptor(Inputs.PATH, "Line", defaults.getBlue(), 1.0f, 
+	    
+	    lines.addRow(new PathDescriptor(Inputs.PATH, "LTF Line", defaults.getBlue(), 1.0f, 
                 null, true, true, true));
 	    lines.addRow(new MarkerDescriptor(Inputs.UP_MARKER, "LTF Swing High Marker", 
 	            Enums.MarkerType.TRIANGLE, Enums.Size.VERY_SMALL, defaults.getGreen(), defaults.getLineColor(), true, true));
 	    lines.addRow(new MarkerDescriptor(Inputs.DOWN_MARKER, "LTF Swing Low Marker", 
 	            Enums.MarkerType.TRIANGLE, Enums.Size.VERY_SMALL, defaults.getRed(), defaults.getLineColor(), true, true));
+	    
+	    lines.addRow(new PathDescriptor("TTFLine", "TTF Line", defaults.getRed(), 2.0f, 
+                null, true, true, true));
 	    lines.addRow(new MarkerDescriptor("TTFSHMarker", "TTF Swing High Marker", 
 	            Enums.MarkerType.CIRCLE, Enums.Size.LARGE, defaults.getGreen(), defaults.getLineColor(), true, true));
 	    lines.addRow(new MarkerDescriptor("TTFSLMarker", "TTF Swing Low Marker", 
 	            Enums.MarkerType.CIRCLE, Enums.Size.LARGE, defaults.getRed(), defaults.getLineColor(), true, true));
+	    
 	    tab.addGroup(lines);
 	    
 	    RuntimeDescriptor desc = new RuntimeDescriptor();
@@ -139,11 +145,13 @@ public class FibonacciStrategy extends Study {
 				new Marker(swing.getCoordinate(), position, marker, String.format("Swing #%d", swing.getIndex())));
 	}
 	
-	public void drawLine(SwingPoint swing1, SwingPoint swing2) {
-		addFigure(new Line(
+	public void drawLine(SwingPoint swing1, SwingPoint swing2, String lineName) {
+		PathInfo line = getSettings().getPath(lineName);
+		if (line.isEnabled())
+			addFigure(new Line(
 				swing1.getCoordinate(),
 				swing2.getCoordinate(),
-				new PathInfo(getSettings().getColor(Inputs.PATH), 1.0f, null, true, false, false, 0, 0)));
+				line));
 	}
 	
 	public void drawLTFMarkersAndLines() {
@@ -154,12 +162,12 @@ public class FibonacciStrategy extends Study {
 			if (swing.isTop()) {
 				drawMarker(swing, Inputs.UP_MARKER, Enums.Position.TOP);
 				
-				if (lastSwingLow != null) drawLine(lastSwingLow, swing);
+				if (lastSwingLow != null) drawLine(lastSwingLow, swing, Inputs.PATH);
 				lastSwingHigh = swing;
 			} else {
 				drawMarker(swing, Inputs.DOWN_MARKER, Enums.Position.BOTTOM);
 				
-				if (lastSwingHigh != null) drawLine(lastSwingHigh, swing);
+				if (lastSwingHigh != null) drawLine(lastSwingHigh, swing, Inputs.PATH);
 				lastSwingLow = swing;
 			}
 		}
@@ -175,12 +183,12 @@ public class FibonacciStrategy extends Study {
 			if (swing.isTop()) {
 				drawMarker(swing, "TTFSHMarker", Enums.Position.TOP);
 				
-				if (lastSwingLow != null) drawLine(lastSwingLow, swing);
+				if (lastSwingLow != null) drawLine(lastSwingLow, swing, "TTFLine");
 				lastSwingHigh = swing;
 			} else {
 				drawMarker(swing, "TTFSLMarker", Enums.Position.BOTTOM);
 				
-				if (lastSwingHigh != null) drawLine(lastSwingHigh, swing);
+				if (lastSwingHigh != null) drawLine(lastSwingHigh, swing, "TTFLine");
 				lastSwingLow = swing;
 			}
 		}
@@ -226,6 +234,7 @@ public class FibonacciStrategy extends Study {
 								leadingSwingHigh = lastSwingHigh;
 								
 								currentTrend = "down";
+								currentWave = 1;
 							}
 						}
 					}
@@ -246,6 +255,7 @@ public class FibonacciStrategy extends Study {
 								leadingSwingLow = lastSwingLow;
 								
 								currentTrend = "up";
+								currentWave = 1;
 							}
 						}
 					}
