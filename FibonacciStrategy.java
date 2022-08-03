@@ -237,7 +237,7 @@ public class FibonacciStrategy extends Study {
 						}
 					} else {
 						if (leadingSwingHigh != null) {
-							if (swing.getValue() < leadingSwingHigh.getValue()) {
+							if (swing.getValue() > leadingSwingHigh.getValue()) {
 								if (lowestSwingLow != null)
 									swingsTTFKeys.add(lowestSwingLow.getIndex());
 								
