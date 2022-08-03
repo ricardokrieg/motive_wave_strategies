@@ -144,18 +144,10 @@ public class FibonacciStrategy extends Study {
 					new Marker(swing.getCoordinate(), position, marker, String.format("Swing #%d", swing.getIndex())));
 	}
 	
-	public void drawLine(SwingPoint swing1, SwingPoint swing2, String lineName, int waveCount) {
+	public void drawLine(SwingPoint swing1, SwingPoint swing2, String lineName) {
 		PathInfo line = getSettings().getPath(lineName);
-		if (line.isEnabled()) {
-			if (waveCount == 1 || waveCount == 2 || waveCount == 3) {
-				line = new PathInfo(line.getColor(), line.getWidth() * 2,
-						line.getDash(), line.isEnabled(), line.isContinuous(),
-						line.isShowAsBars(), line.getBarCenter(), line.getFixedWidth());
-			}
-			
-			addFigure(
-					new Line(swing1.getCoordinate(), swing2.getCoordinate(), line));
-		}
+		if (line.isEnabled())
+			addFigure(new Line(swing1.getCoordinate(), swing2.getCoordinate(), line));
 	}
 	
 	public void drawLTFMarkersAndLines() {
@@ -166,12 +158,12 @@ public class FibonacciStrategy extends Study {
 			if (swing.isTop()) {
 				drawMarker(swing, Inputs.UP_MARKER, Enums.Position.TOP);
 				
-				if (lastSwingLow != null) drawLine(lastSwingLow, swing, Inputs.PATH, 0);
+				if (lastSwingLow != null) drawLine(lastSwingLow, swing, Inputs.PATH);
 				lastSwingHigh = swing;
 			} else {
 				drawMarker(swing, Inputs.DOWN_MARKER, Enums.Position.BOTTOM);
 				
-				if (lastSwingHigh != null) drawLine(lastSwingHigh, swing, Inputs.PATH, 0);
+				if (lastSwingHigh != null) drawLine(lastSwingHigh, swing, Inputs.PATH);
 				lastSwingLow = swing;
 			}
 		}
@@ -187,12 +179,12 @@ public class FibonacciStrategy extends Study {
 			if (swing.isTop()) {
 				drawMarker(swing, "TTFSHMarker", Enums.Position.TOP);
 				
-				if (lastSwingLow != null) drawLine(lastSwingLow, swing, "TTFLine", 1);
+				if (lastSwingLow != null) drawLine(lastSwingLow, swing, "TTFLine");
 				lastSwingHigh = swing;
 			} else {
 				drawMarker(swing, "TTFSLMarker", Enums.Position.BOTTOM);
 				
-				if (lastSwingHigh != null) drawLine(lastSwingHigh, swing, "TTFLine", 0);
+				if (lastSwingHigh != null) drawLine(lastSwingHigh, swing, "TTFLine");
 				lastSwingLow = swing;
 			}
 		}
@@ -245,7 +237,7 @@ public class FibonacciStrategy extends Study {
 								
 								currentTrend = "down";
 								if (!ltfTrend) {
-									debug(String.format("Change to DOWN trend #%d", swing.getIndex()));
+									//debug(String.format("Change to DOWN trend #%d", swing.getIndex()));
 								}
 							}
 						}
@@ -270,7 +262,7 @@ public class FibonacciStrategy extends Study {
 								
 								currentTrend = "up";
 								if (!ltfTrend) {
-									debug(String.format("Change to UP trend #%d", swing.getIndex()));
+									//debug(String.format("Change to UP trend #%d", swing.getIndex()));
 								}
 							}
 						}
@@ -283,14 +275,6 @@ public class FibonacciStrategy extends Study {
 			else
 				lastSwingLow = swing;
 		}
-	}
-	
-	@Override
-	protected void calculate(int index, DataContext ctx) {
-		DataSeries series = ctx.getDataSeries();
-
-		if (!series.isBarComplete(index)) return;
-		series.setComplete(index);
 	}
 	
 	@Override
@@ -310,10 +294,5 @@ public class FibonacciStrategy extends Study {
 		
 		drawTTFMarkersAndLines();
 		computeTrend(false);
-		
-		debug("TTF Keys");
-		for (int key : swingsTTFKeys) {
-			debug(String.format("%d", key));
-		}
 	}
 }
