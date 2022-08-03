@@ -221,7 +221,7 @@ public class FibonacciStrategy extends Study {
 								if (highestSwingHigh != null)
 									swingsTTFKeys.add(highestSwingHigh.getIndex());
 								
-								lowestSwingLow = null;
+								lowestSwingLow = swing;
 								leadingSwingLow = null;
 								leadingSwingHigh = lastSwingHigh;
 								
@@ -231,7 +231,7 @@ public class FibonacciStrategy extends Study {
 					}
 				} else if (currentTrend == "down") {
 					if (swing.isBottom()) {
-						if (lowestSwingLow == null || (swing.getValue() > lowestSwingLow.getValue())) {
+						if (lowestSwingLow == null || (swing.getValue() < lowestSwingLow.getValue())) {
 							lowestSwingLow = swing;
 							leadingSwingHigh = lastSwingHigh;
 						}
@@ -241,7 +241,7 @@ public class FibonacciStrategy extends Study {
 								if (lowestSwingLow != null)
 									swingsTTFKeys.add(lowestSwingLow.getIndex());
 								
-								highestSwingHigh = null;
+								highestSwingHigh = swing;
 								leadingSwingHigh = null;
 								leadingSwingLow = lastSwingLow;
 								
@@ -282,5 +282,10 @@ public class FibonacciStrategy extends Study {
 		
 		computeTrend();
 		drawTTFMarkersAndLines();
+		
+		debug("TTF Keys");
+		for (int key : swingsTTFKeys) {
+			debug(String.format("%d", key));
+		}
 	}
 }
