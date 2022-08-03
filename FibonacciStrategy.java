@@ -287,6 +287,7 @@ public class FibonacciStrategy extends Study {
 		List<SwingPoint> swingsLow = computeSwings(series, false, Inputs.DOWN_MARKER, Enums.Position.BOTTOM, "Swing Low");
 		
 		mergeSwings(swingsHigh, swingsLow);
+		
 		deleteNeighborSwings();
 		
 		drawLTFMarkersAndLines();
@@ -294,5 +295,15 @@ public class FibonacciStrategy extends Study {
 		
 		drawTTFMarkersAndLines();
 		computeTrend(false);
+		
+		super.onBarClose(ctx);
+	}
+	
+	@Override
+	public void onTick(DataContext ctx, Tick tick) {
+		// determine current TTF wave
+		// if wave == 2: determine wave 2 retraction percentage
+		
+		super.onTick(ctx, tick);
 	}
 }
