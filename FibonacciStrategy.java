@@ -30,6 +30,7 @@ public class FibonacciStrategy extends Study {
 	
 	List<SwingPoint> swingsLTF = new ArrayList<SwingPoint>();
 	List<Integer> swingsTTFKeys = new ArrayList<Integer>();
+	int currentWave = 0;
 	
 	public void initialize(Defaults defaults) {
 	    SettingsDescriptor sd = new SettingsDescriptor();
@@ -196,7 +197,7 @@ public class FibonacciStrategy extends Study {
 		clearFigures();
 	}
 	
-	public void computeTrend(boolean ltfTrend) {
+	public void computeTrend(boolean ltfTrend, boolean waveCounting) {
 		String currentTrend = null;
 		SwingPoint lastSwingHigh = null;
 		SwingPoint lastSwingLow = null;
@@ -208,6 +209,8 @@ public class FibonacciStrategy extends Study {
 		for (SwingPoint swing : swingsLTF) {
 			if (!ltfTrend) {
 				if (!swingsTTFKeys.contains(swing.getIndex())) continue;
+				
+				//currentWave++;
 			}
 			
 			if (currentTrend == null) {
@@ -227,8 +230,13 @@ public class FibonacciStrategy extends Study {
 						if (leadingSwingLow != null) {
 							if (swing.getValue() < leadingSwingLow.getValue()) {
 								if (ltfTrend) {
-									if (highestSwingHigh != null)
-										swingsTTFKeys.add(highestSwingHigh.getIndex());									
+									if (highestSwingHigh != null) {
+										if (waveCounting) {
+											//currentWave++;											
+										} else {
+											swingsTTFKeys.add(highestSwingHigh.getIndex());											
+										}
+									}
 								}
 								
 								lowestSwingLow = swing;
@@ -237,7 +245,7 @@ public class FibonacciStrategy extends Study {
 								
 								currentTrend = "down";
 								if (!ltfTrend) {
-									//debug(String.format("Change to DOWN trend #%d", swing.getIndex()));
+									currentWave = 2;
 								}
 							}
 						}
@@ -252,8 +260,13 @@ public class FibonacciStrategy extends Study {
 						if (leadingSwingHigh != null) {
 							if (swing.getValue() > leadingSwingHigh.getValue()) {
 								if (ltfTrend) {
-									if (lowestSwingLow != null)
-										swingsTTFKeys.add(lowestSwingLow.getIndex());
+									if (lowestSwingLow != null) {
+										if (waveCounting) {
+											//currentWave++;											
+										} else {
+											swingsTTFKeys.add(lowestSwingLow.getIndex());											
+										}
+									}
 								}
 								
 								highestSwingHigh = swing;
@@ -262,7 +275,7 @@ public class FibonacciStrategy extends Study {
 								
 								currentTrend = "up";
 								if (!ltfTrend) {
-									//debug(String.format("Change to UP trend #%d", swing.getIndex()));
+									currentWave = 2;
 								}
 							}
 						}
@@ -275,6 +288,64 @@ public class FibonacciStrategy extends Study {
 			else
 				lastSwingLow = swing;
 		}
+	}
+	
+	public void computeWave(DataSeries series) {
+		debug(String.format("Current Wave: %d", currentWave));
+		
+		if (currentWave == 2) {
+			computeRetraction(series);
+		}
+	}
+	
+	public void computeRetraction(DataSeries series) {
+		if (swingsTTFKeys.size() < 2) {
+			debug("Not enough swing points to compute correction");
+			return;
+		}
+		
+		double retraction = 0;
+		double retraction50 = 0;
+		double retraction618 = 0;
+		
+		int swing1Index = swingsTTFKeys.get(swingsTTFKeys.size() - 2);
+		int swing2Index = swingsTTFKeys.get(swingsTTFKeys.size() - 1);
+		
+		SwingPoint swing1 = null;
+		SwingPoint swing2 = null;
+		
+		for (SwingPoint swing : swingsLTF) {
+			if (swing.getIndex() == swing1Index) swing1 = swing;
+			if (swing.getIndex() == swing2Index) swing2 = swing;
+			
+			if (swing1 != null & swing2 != null) break;
+		}
+		
+		if (swing1 == null || swing2 == null) {
+			debug("Not enough swing points to compute correction");
+			return;
+		}
+		
+		if (swing2.isTop()) {
+			double diff = swing2.getValue() - swing1.getValue();
+			
+			retraction50 = diff * 0.5f + swing1.getValue();
+			retraction618 = diff * 0.618f + swing1.getValue();
+			retraction = (swing2.getValue() - series.getBidClose()) * 100.0f / diff;
+		} else {
+			double diff = swing1.getValue() - swing2.getValue();
+			
+			retraction50 = diff * 0.5f + swing2.getValue();
+			retraction618 = diff * 0.618f + swing2.getValue();
+			retraction = (series.getBidClose() - swing2.getValue()) * 100.0f / diff;
+		}
+		
+		debug(String.format("Swing 2 is Top? %b", swing2.isTop()));
+		debug(String.format("Swing 1: %.5f", swing1.getValue()));
+		debug(String.format("Swing 2: %.5f", swing2.getValue()));
+		debug(String.format("Retraction: %.2f%%", retraction));
+		debug(String.format("Retraction 50%%: %.5f", retraction50));
+		debug(String.format("Retraction 61.8%%: %.5f", retraction618));
 	}
 	
 	@Override
@@ -291,19 +362,14 @@ public class FibonacciStrategy extends Study {
 		deleteNeighborSwings();
 		
 		drawLTFMarkersAndLines();
-		computeTrend(true);
+		computeTrend(true, false);
 		
 		drawTTFMarkersAndLines();
-		computeTrend(false);
+		computeTrend(false, false);
+		computeTrend(true, true);
+		
+		computeWave(series);
 		
 		super.onBarClose(ctx);
-	}
-	
-	@Override
-	public void onTick(DataContext ctx, Tick tick) {
-		// determine current TTF wave
-		// if wave == 2: determine wave 2 retraction percentage
-		
-		super.onTick(ctx, tick);
 	}
 }
