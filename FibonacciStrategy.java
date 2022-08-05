@@ -410,6 +410,41 @@ public class FibonacciStrategy extends Study {
 		}
 	}
 
+	public void openTrade(OrderContext ctx, Enums.OrderAction orderAction) {
+		if (ctx.getPosition() != 0) {
+			debug("Position is not zero");
+			return;
+		}
+		
+		if (stopPrice <= 0) {
+			debug("stopPrice is invalid");
+			return;
+		}
+		
+		Instrument instr = ctx.getInstrument();
+		// TODO the code is running twice, so I specify the half of the value I want
+		int lots = 200 / 2;
+		
+		double tickSize = instr.getTickSize();
+		float spread = (float)(int)(instr.getSpread() * tickSize);
+		
+		debug("Openning Order");
+		debug(String.format("Lot Size: %d", lots));
+		debug(String.format("Stop Price Before: %.5f", stopPrice));
+		debug(String.format("Tick Size: %.5f", tickSize));
+		debug(String.format("Spread: %.0f ticks", spread));
+		
+		if (orderAction == Enums.OrderAction.BUY) {
+			stopPrice += (tickSize + spread);
+		} else if (orderAction == Enums.OrderAction.SELL) {
+			stopPrice -= (tickSize + spread);
+		}
+		
+		debug(String.format("Stop Price After: %.5f", stopPrice));
+		
+		ctx.createStopOrder(orderAction, Enums.TIF.GTC, lots, (float)stopPrice);
+	}
+	
 	@Override
 	public void onBarClose(DataContext ctx) {
 		clear();
@@ -436,56 +471,18 @@ public class FibonacciStrategy extends Study {
 	}
 	
 	@Override
-	public void onBarUpdate(OrderContext ctx) {
-		debug("HERE ORDER UPDATE 2");
-		
-		int lots = 100;
-		
+	public void onBarUpdate(OrderContext ctx) {		
 		if (orderAction == Enums.OrderAction.BUY) {
 			debug("BUY signal");
-			
-			if (stopPrice > 0) {
-				ctx.createStopOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, lots, (float)stopPrice);				
-			}
 		} else if (orderAction == Enums.OrderAction.SELL) {
 			debug("SELL signal");
-			
-			if (stopPrice > 0) {
-				ctx.createStopOrder(Enums.OrderAction.SELL, Enums.TIF.GTC, lots, (float)stopPrice);				
-			}
 		}
+		
+		openTrade(ctx, orderAction);
 		
 		orderAction = null;
 		stopPrice = 0;
 		
 		super.onBarUpdate(ctx);
 	}
-	
-	/*
-	@Override
-	public void onSignal(OrderContext ctx, Object signal) {
-		debug(String.format("SIGNAL. StopPrice: %.5f", stopPrice));
-		
-		int lots = 100;
-		
-		if (signal == Signals.BUY_STOP) {
-			debug("BUY signal");
-			
-			if (stopPrice > 0) {
-				ctx.createStopOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, lots, stopPrice);				
-			}
-			
-		} else if (signal == Signals.SELL_STOP) {
-			debug("SELL signal");
-			
-			if (stopPrice > 0) {
-				ctx.createStopOrder(Enums.OrderAction.SELL, Enums.TIF.GTC, lots, stopPrice);				
-			}
-		}
-		
-		stopPrice = 0;
-		
-		super.onSignal(ctx, signal);
-	}
-	*/
 }
