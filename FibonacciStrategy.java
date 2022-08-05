@@ -13,6 +13,11 @@ import com.motivewave.platform.sdk.common.desc.*;
 import com.motivewave.platform.sdk.draw.*;
 import com.motivewave.platform.sdk.study.*;
 
+import study_examples.SampleMACross.Signals;
+import study_examples.SampleMACross.Values;
+
+import com.motivewave.platform.sdk.order_mgmt.*;
+
 
 /** Trading using Fibonacci retracement zone, following the trend */
 @StudyHeader(
@@ -24,16 +29,23 @@ import com.motivewave.platform.sdk.study.*;
  menu="Ricardo",
  overlay=true,
  studyOverlay=true,
- strategy=false)
+ signals = true,
+ strategy = true,
+ autoEntry = true,
+ manualEntry = false,
+ supportsUnrealizedPL = true,
+ supportsRealizedPL = true,
+ supportsTotalPL = true)
 public class FibonacciStrategy extends Study {
 	enum Values { MA };
+	enum Signals { BUY_STOP, SELL_STOP }; 
 	
 	List<SwingPoint> swingsLTF = new ArrayList<SwingPoint>();
 	List<Integer> swingsTTFKeys = new ArrayList<Integer>();
 	
 	boolean onWave2 = false;
 	int wave2Index = 0;
-	boolean zoneIsGood = false;
+	String currentTrend = null;
 	
 	double retraction = 0;
 	double retraction50 = 0;
@@ -73,6 +85,13 @@ public class FibonacciStrategy extends Study {
 	    
 	    RuntimeDescriptor desc = new RuntimeDescriptor();
 	    setRuntimeDescriptor(desc);
+
+	    desc.exportValue(new ValueDescriptor(Signals.BUY_STOP, Enums.ValueType.BOOLEAN, "Buy Signal", null));
+	    desc.exportValue(new ValueDescriptor(Signals.SELL_STOP, Enums.ValueType.BOOLEAN, "Sell Signal", null));
+
+	    // Signals
+	    desc.declareSignal(Signals.BUY_STOP, "Buy Signal");
+	    desc.declareSignal(Signals.SELL_STOP, "Sell Signal");
 	}
 	
 	public static <T> List<T> castList(Class<? extends T> clazz, Collection<?> c) {
@@ -207,8 +226,9 @@ public class FibonacciStrategy extends Study {
 		clearFigures();
 	}
 	
-	public void computeTrend(boolean ltfTrend, boolean countingWave) {
-		String currentTrend = null;
+	public void computeTrend(boolean ltfTrend) {
+		currentTrend = null;
+		
 		SwingPoint lastSwingHigh = null;
 		SwingPoint lastSwingLow = null;
 		SwingPoint highestSwingHigh = null;
@@ -219,15 +239,7 @@ public class FibonacciStrategy extends Study {
 		for (SwingPoint swing : swingsLTF) {
 			if (!ltfTrend) {
 				if (!swingsTTFKeys.contains(swing.getIndex())) continue;
-				if (countingWave && swing.getIndex() < wave2Index) continue;
 				
-				if (countingWave) {
-					if (currentTrend == "up") {
-						debug("BUY NOW");						
-					} else if (currentTrend == "down") {
-						debug("SELL NOW");
-					}
-				}
 				onWave2 = false;
 			}
 			
@@ -263,7 +275,7 @@ public class FibonacciStrategy extends Study {
 									wave2Index = swing.getIndex();
 									reachedZone = false;
 									invalidatedZone = false;
-									debug(String.format("Wave 2 confirmed on index #%d", wave2Index));
+									//debug(String.format("Wave 2 confirmed on index #%d", wave2Index));
 								}
 							}
 						}
@@ -293,7 +305,7 @@ public class FibonacciStrategy extends Study {
 									wave2Index = swing.getIndex();
 									reachedZone = false;
 									invalidatedZone = false;
-									debug(String.format("Wave 2 confirmed on index #%d", wave2Index));
+									//debug(String.format("Wave 2 confirmed on index #%d", wave2Index));
 								}
 							}
 						}
@@ -344,16 +356,17 @@ public class FibonacciStrategy extends Study {
 			
 			retraction50 = diff * 0.5f + swing1.getValue();
 			retraction618 = diff * 0.618f + swing1.getValue();
-			retraction = (swing2.getValue() - series.getBidClose()) * 100.0f / diff;
+			retraction = (swing2.getValue() - series.getClose()) * 100.0f / diff;
 		} else {
 			double diff = swing1.getValue() - swing2.getValue();
 			
 			retraction50 = diff * 0.5f + swing2.getValue();
 			retraction618 = diff * 0.618f + swing2.getValue();
-			retraction = (series.getBidClose() - swing2.getValue()) * 100.0f / diff;
+			retraction = (series.getClose() - swing2.getValue()) * 100.0f / diff;
 		}
 		
 		debug(String.format("Swing 2 is Top? %b", swing2.isTop()));
+		debug(String.format("Close: %.5f", series.getClose()));
 		debug(String.format("Swing 1: %.5f", swing1.getValue()));
 		debug(String.format("Swing 2: %.5f", swing2.getValue()));
 		debug(String.format("Retraction: %.2f%%", retraction));
@@ -361,20 +374,41 @@ public class FibonacciStrategy extends Study {
 		debug(String.format("Retraction 61.8%%: %.5f", retraction618));
 	}
 	
-	public void prepareTrade() {
+	public void prepareTrade(DataContext ctx) {
 		if (!onWave2) return;
 		if (!validRetraction) return;
 		
-		if (retraction > 45.0f) reachedZone = true;
+		if (retraction > 40.0f) reachedZone = true;
 		if (retraction > 66.8f) invalidatedZone = true;
 		
 		if (reachedZone && !invalidatedZone) {
-			debug("Trade is valid");
+			debug("Trade is valid. We can create the Stop order now.");
+			
+			SwingPoint lastSwing = null;
+			
+			for (SwingPoint swing : swingsLTF) {
+				if (currentTrend == "up") {
+					if (swing.isTop()) lastSwing = swing;
+				} else if (currentTrend == "down") {
+					if (swing.isBottom()) lastSwing = swing;
+				}
+			}
+			
+			if (lastSwing != null) {
+				if (currentTrend == "up") {
+					debug(String.format("BUY @ %.5f", lastSwing.getValue()));
+					ctx.signal(lastSwing.getIndex(), Signals.BUY_STOP, "BUY", lastSwing.getValue());
+				} else if (currentTrend == "down") {
+					debug(String.format("SELL @ %.5f", lastSwing.getValue()));
+					ctx.signal(lastSwing.getIndex(), Signals.SELL_STOP, "SELL", lastSwing.getValue());
+				}
+			}
 		}
 	}
 	
 	@Override
 	public void onBarClose(DataContext ctx) {
+		debug("DataContext");
 		clear();
 		
 		DataSeries series = ctx.getDataSeries();
@@ -387,15 +421,34 @@ public class FibonacciStrategy extends Study {
 		deleteNeighborSwings();
 		
 		drawLTFMarkersAndLines();
-		computeTrend(true, false);
+		computeTrend(true);
 		
 		drawTTFMarkersAndLines();
-		computeTrend(false, false);
-		//computeTrend(false, true);
+		computeTrend(false);
 		
 		computeRetraction(series);
-		prepareTrade();
+		prepareTrade(ctx);
 		
 		super.onBarClose(ctx);
+	}
+	
+	@Override
+	public void onSignal(OrderContext ctx, Object signal) {
+		if (signal == Signals.BUY_STOP) {
+			debug("BUY signal");
+		} else if (signal == Signals.SELL_STOP) {
+			debug("SELL signal");
+		}
+	    /*Instrument instr = ctx.getInstrument();
+	    int position = ctx.getPosition();
+	    int qty = (getSettings().getTradeLots() * instr.getDefaultQuantity());
+
+	    qty += Math.abs(position); // Stop and Reverse if there is an open position
+	    if (position <= 0 && signal == Signals.CROSS_ABOVE) {
+	      ctx.buy(qty); // Open Long Position
+	    }
+	    if (position >= 0 && signal == Signals.CROSS_BELOW) {
+	      ctx.sell(qty); // Open Short Position
+	    }*/
 	}
 }
