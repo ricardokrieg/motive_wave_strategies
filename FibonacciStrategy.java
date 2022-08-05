@@ -322,7 +322,7 @@ public class FibonacciStrategy extends Study {
 	public void computeRetraction(DataSeries series) {
 		validRetraction = false;
 		
-		debug(String.format("On Wave 2? %b", onWave2));
+		//debug(String.format("On Wave 2? %b", onWave2));
 		if (!onWave2) return;
 		
 		if (swingsTTFKeys.size() < 2) {
@@ -364,13 +364,13 @@ public class FibonacciStrategy extends Study {
 			retraction = (series.getClose() - swing2.getValue()) * 100.0f / diff;
 		}
 		
-		debug(String.format("Swing 2 is Top? %b", swing2.isTop()));
+		/*debug(String.format("Swing 2 is Top? %b", swing2.isTop()));
 		debug(String.format("Close: %.5f", series.getClose()));
 		debug(String.format("Swing 1: %.5f", swing1.getValue()));
 		debug(String.format("Swing 2: %.5f", swing2.getValue()));
 		debug(String.format("Retraction: %.2f%%", retraction));
 		debug(String.format("Retraction 50%%: %.5f", retraction50));
-		debug(String.format("Retraction 61.8%%: %.5f", retraction618));
+		debug(String.format("Retraction 61.8%%: %.5f", retraction618));*/
 	}
 	
 	public void prepareTrade(DataContext ctx, DataSeries series) {
@@ -424,15 +424,14 @@ public class FibonacciStrategy extends Study {
 		Instrument instr = ctx.getInstrument();
 		// TODO the code is running twice, so I specify the half of the value I want
 		int lots = 200 / 2;
-		
 		double tickSize = instr.getTickSize();
-		float spread = (float)(int)(instr.getSpread() * tickSize);
+		float spread = (instr.getSpread() / 2.0f) * (float)tickSize;
 		
 		debug("Openning Order");
 		debug(String.format("Lot Size: %d", lots));
 		debug(String.format("Stop Price Before: %.5f", stopPrice));
 		debug(String.format("Tick Size: %.5f", tickSize));
-		debug(String.format("Spread: %.0f ticks", spread));
+		debug(String.format("Spread: %.5f", spread));
 		
 		if (orderAction == Enums.OrderAction.BUY) {
 			stopPrice += (tickSize + spread);
@@ -476,6 +475,8 @@ public class FibonacciStrategy extends Study {
 			debug("BUY signal");
 		} else if (orderAction == Enums.OrderAction.SELL) {
 			debug("SELL signal");
+		} else {
+			return;
 		}
 		
 		openTrade(ctx, orderAction);
