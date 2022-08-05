@@ -50,7 +50,8 @@ public class FibonacciStrategy extends Study {
 	boolean reachedZone = false;
 	boolean invalidatedZone = false;
 	
-	double stopPrice = 0;
+	Order currentOrder = null;
+	float stopPrice = 0;
 	Enums.OrderAction orderAction = null;
 	
 	public void initialize(Defaults defaults) {
@@ -396,12 +397,12 @@ public class FibonacciStrategy extends Study {
 			if (lastSwing != null) {
 				if (currentTrend == "up") {
 					debug(String.format("BUY @ %.5f", lastSwing.getValue()));
-					stopPrice = lastSwing.getValue();
+					stopPrice = (float)lastSwing.getValue();
 					orderAction = Enums.OrderAction.BUY;
 					//ctx.signal(lastSwing.getIndex(), Signals.BUY_STOP, "BUY", series.getClose(lastSwing.getIndex()));
 				} else if (currentTrend == "down") {
 					debug(String.format("SELL @ %.5f", lastSwing.getValue()));
-					stopPrice = lastSwing.getValue();
+					stopPrice = (float)lastSwing.getValue();
 					orderAction = Enums.OrderAction.SELL;
 					ctx.signal(lastSwing.getIndex(), Signals.SELL_STOP, "SELL", series.getClose(lastSwing.getIndex()));
 					//debug(String.format("Sending signal %.5f #%d %.5f", stopPrice, lastSwing.getIndex(), series.getClose(lastSwing.getIndex())));
@@ -441,7 +442,15 @@ public class FibonacciStrategy extends Study {
 		
 		debug(String.format("Stop Price After: %.5f", stopPrice));
 		
-		ctx.createStopOrder(orderAction, Enums.TIF.GTC, lots, (float)stopPrice);
+		if (currentOrder == null || currentOrder.getAction() != orderAction) {
+			if (currentOrder != null) {
+				ctx.cancelOrders(currentOrder);
+			}
+			
+			currentOrder = ctx.createStopOrder(orderAction, Enums.TIF.GTC, lots, stopPrice);			
+		} else {
+			currentOrder.setAdjStopPrice(stopPrice);
+		}
 	}
 	
 	@Override
