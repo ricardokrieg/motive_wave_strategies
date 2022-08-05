@@ -442,15 +442,9 @@ public class FibonacciStrategy extends Study {
 		
 		debug(String.format("Stop Price After: %.5f", stopPrice));
 		
-		if (currentOrder == null || currentOrder.getAction() != orderAction) {
-			if (currentOrder != null) {
-				ctx.cancelOrders(currentOrder);
-			}
-			
-			currentOrder = ctx.createStopOrder(orderAction, Enums.TIF.GTC, lots, stopPrice);			
-		} else {
-			currentOrder.setAdjStopPrice(stopPrice);
-		}
+		ctx.cancelOrders();
+		
+		currentOrder = ctx.createStopOrder(orderAction, Enums.TIF.GTC, lots, stopPrice);
 	}
 	
 	@Override
@@ -479,7 +473,11 @@ public class FibonacciStrategy extends Study {
 	}
 	
 	@Override
-	public void onBarUpdate(OrderContext ctx) {		
+	public void onBarUpdate(OrderContext ctx) {
+		if (invalidatedZone && currentOrder != null) {
+			ctx.cancelOrders();
+		}
+		
 		if (orderAction == Enums.OrderAction.BUY) {
 			debug("BUY signal");
 		} else if (orderAction == Enums.OrderAction.SELL) {
