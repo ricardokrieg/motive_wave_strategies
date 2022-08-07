@@ -12,6 +12,9 @@ import com.motivewave.platform.sdk.common.*;
 import com.motivewave.platform.sdk.common.desc.*;
 import com.motivewave.platform.sdk.draw.*;
 import com.motivewave.platform.sdk.study.*;
+
+import study_examples.SampleMACross.Signals;
+
 import com.motivewave.platform.sdk.order_mgmt.*;
 
 
@@ -50,8 +53,11 @@ public class FibonacciStrategy extends Study {
 	boolean reachedZone = false;
 	boolean invalidatedZone = false;
 	
+	boolean checkOrders = false;
 	Order currentOrder = null;
 	float stopPrice = 0;
+	float stopLossPrice = 0;
+	float takeProfitPrice = 0;
 	Enums.OrderAction orderAction = null;
 	
 	public void initialize(Defaults defaults) {
@@ -384,27 +390,30 @@ public class FibonacciStrategy extends Study {
 		if (reachedZone && !invalidatedZone) {
 			debug("Trade is valid. We can create the Stop order now.");
 			
-			SwingPoint lastSwing = null;
+			SwingPoint lastSwingHigh = null;
+			SwingPoint lastSwingLow = null;
 			
 			for (SwingPoint swing : swingsLTF) {
-				if (currentTrend == "up") {
-					if (swing.isTop()) lastSwing = swing;
-				} else if (currentTrend == "down") {
-					if (swing.isBottom()) lastSwing = swing;
-				}
+				if (swing.isTop()) lastSwingHigh = swing;
+				if (swing.isBottom()) lastSwingLow = swing;
 			}
 			
-			if (lastSwing != null) {
-				if (currentTrend == "up") {
-					debug(String.format("BUY @ %.5f", lastSwing.getValue()));
-					stopPrice = (float)lastSwing.getValue();
+			if (currentTrend == "up") {
+				if (lastSwingHigh != null) {
+					debug(String.format("BUY @ %.5f", lastSwingHigh.getValue()));
+					stopPrice = (float)lastSwingHigh.getValue();
+					stopLossPrice = (float)lastSwingLow.getValue();
+					//takeProfitPrice
 					orderAction = Enums.OrderAction.BUY;
-					//ctx.signal(lastSwing.getIndex(), Signals.BUY_STOP, "BUY", series.getClose(lastSwing.getIndex()));
-				} else if (currentTrend == "down") {
-					debug(String.format("SELL @ %.5f", lastSwing.getValue()));
-					stopPrice = (float)lastSwing.getValue();
+					//ctx.signal(lastSwingLow.getIndex(), Signals.BUY_STOP, "BUY", series.getClose(lastSwingLow.getIndex()));
+				}
+			} else if (currentTrend == "down") {
+				if (lastSwingLow != null) {	
+					debug(String.format("SELL @ %.5f", lastSwingLow.getValue()));
+					stopPrice = (float)lastSwingLow.getValue();
+					stopLossPrice = (float)lastSwingHigh.getValue();
 					orderAction = Enums.OrderAction.SELL;
-					ctx.signal(lastSwing.getIndex(), Signals.SELL_STOP, "SELL", series.getClose(lastSwing.getIndex()));
+					//ctx.signal(lastSwingHigh.getIndex(), Signals.SELL_STOP, "SELL", series.getClose(lastSwingHigh.getIndex()));
 					//debug(String.format("Sending signal %.5f #%d %.5f", stopPrice, lastSwing.getIndex(), series.getClose(lastSwing.getIndex())));
 				}
 			}
@@ -431,6 +440,7 @@ public class FibonacciStrategy extends Study {
 		debug("Openning Order");
 		debug(String.format("Lot Size: %d", lots));
 		debug(String.format("Stop Price Before: %.5f", stopPrice));
+		debug(String.format("Stop Loss Price: %.5f", stopLossPrice));
 		debug(String.format("Tick Size: %.5f", tickSize));
 		debug(String.format("Spread: %.5f", spread));
 		
@@ -442,9 +452,11 @@ public class FibonacciStrategy extends Study {
 		
 		debug(String.format("Stop Price After: %.5f", stopPrice));
 		
-		ctx.cancelOrders();
-		
-		currentOrder = ctx.createStopOrder(orderAction, Enums.TIF.GTC, lots, stopPrice);
+		//ctx.cancelOrders();
+		//if (currentOrder != null) return; // TODO remove this
+		//currentOrder = ctx.createStopOrder(orderAction, Enums.TIF.GTC, lots, stopPrice);
+		//ctx.createStopOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, lots, stopPrice + (10.0f * (float)tickSize));
+		//ctx.createLimitOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, lots, stopPrice - (10.0f * (float)tickSize));
 	}
 	
 	@Override
@@ -474,8 +486,17 @@ public class FibonacciStrategy extends Study {
 	
 	@Override
 	public void onBarUpdate(OrderContext ctx) {
-		if (invalidatedZone && currentOrder != null) {
-			ctx.cancelOrders();
+		// FIXME just faking an order
+		DataSeries series = ctx.getDataContext().getDataSeries();
+		if (series.getClose() < 1.18140f) {
+			if (currentOrder == null) {
+				//currentOrder = ctx.createStopOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, 100, 1.18200f);
+				//ctx.createLimitOrder(Enums.OrderAction.SELL, Enums.TIF.GTC, 100, 1.18260f);
+			}
+		}
+		
+		if (invalidatedZone && currentOrder != null && ctx.getPosition() == 0) {
+			//ctx.cancelOrders();
 		}
 		
 		if (orderAction == Enums.OrderAction.BUY) {
@@ -491,6 +512,42 @@ public class FibonacciStrategy extends Study {
 		orderAction = null;
 		stopPrice = 0;
 		
+		checkOrders = true;
+		
 		super.onBarUpdate(ctx);
+	}
+	
+	@Override
+	protected void calculate(int index, DataContext ctx) {
+		DataSeries series = ctx.getDataSeries();
+		
+		if (!series.isBarComplete(index)) return;
+		
+		if (checkOrders) {
+		}
+		checkOrders = false;
+		
+		if (series.getClose() < 1.18140f) {
+			ctx.signal(index, Signals.SELL_STOP, "Sell Now!", series.getClose(index));
+			/*if (currentOrder == null) {
+				//currentOrder = ctx.createStopOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, 100, 1.18200f);
+				//ctx.createLimitOrder(Enums.OrderAction.SELL, Enums.TIF.GTC, 100, 1.18260f);
+				debug("HALO 4");
+				ctx.signal(series.getEndIndex() - 1, Signals.SELL_STOP, "Sell Now!", series.getClose());
+			}*/
+		}
+
+		series.setComplete(index);
+	}
+	
+	@Override
+	public void onSignal(OrderContext ctx, Object signal) {
+		debug("SIGNAL!!!!!");
+		if (currentOrder == null) {
+			debug("PLACING ORDER");
+			currentOrder = ctx.createStopOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, 100, 1.18200f);
+			ctx.createLimitOrder(Enums.OrderAction.SELL, Enums.TIF.GTC, 100, 1.18260f);
+			ctx.buy(100);
+		}
 	}
 }
