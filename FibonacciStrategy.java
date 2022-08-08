@@ -1,4 +1,4 @@
-package study_examples;
+package ricardo_franco;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,22 +10,20 @@ import java.util.TreeSet;
 
 import com.motivewave.platform.sdk.common.*;
 import com.motivewave.platform.sdk.common.desc.*;
-import com.motivewave.platform.sdk.draw.*;
+import com.motivewave.platform.sdk.draw.Line;
+import com.motivewave.platform.sdk.draw.Marker;
 import com.motivewave.platform.sdk.study.*;
-
-import study_examples.SampleMACross.Signals;
-
 import com.motivewave.platform.sdk.order_mgmt.*;
 
 
-/** Trading using Fibonacci retracement zone, following the trend */
+/** Trading using Fibonacci retraction zone, following the trend */
 @StudyHeader(
  namespace="com.ricardofranco", 
  id="FIBONACCI_STRATEGY",
  name="Fibonacci Strategy",
  label="Fibonacci Strategy",
  desc="Fibonacci Strategy",
- menu="Ricardo",
+ menu="Ricardo Franco",
  overlay=true,
  studyOverlay=true,
  signals = true,
@@ -37,7 +35,14 @@ import com.motivewave.platform.sdk.order_mgmt.*;
  supportsTotalPL = true)
 public class FibonacciStrategy extends Study {
 	enum Values { MA };
-	enum Signals { BUY_STOP, SELL_STOP }; 
+	enum Signals { BUY_STOP, SELL_STOP };
+	
+	final static String LTF_MARKER = "ltfMarker";
+	final static String TTF_MARKER = "ttfMarker";
+	final static String LTF_LINE = "ltfLine";
+	final static String TTF_LINE = "ttfLine";
+	
+	GraphicManager graphicManager;
 	
 	List<SwingPoint> swingsLTF = new ArrayList<SwingPoint>();
 	List<Integer> swingsTTFKeys = new ArrayList<Integer>();
@@ -73,19 +78,13 @@ public class FibonacciStrategy extends Study {
 	    
 	    SettingGroup lines = new SettingGroup("Display");
 	    
-	    lines.addRow(new PathDescriptor(Inputs.PATH, "LTF Line", defaults.getBlue(), 1.0f, 
-                null, true, true, true));
-	    lines.addRow(new MarkerDescriptor(Inputs.UP_MARKER, "LTF Swing High Marker", 
-	            Enums.MarkerType.TRIANGLE, Enums.Size.VERY_SMALL, defaults.getGreen(), defaults.getLineColor(), true, true));
-	    lines.addRow(new MarkerDescriptor(Inputs.DOWN_MARKER, "LTF Swing Low Marker", 
-	            Enums.MarkerType.TRIANGLE, Enums.Size.VERY_SMALL, defaults.getRed(), defaults.getLineColor(), true, true));
+	    lines.addRow(new PathDescriptor(LTF_LINE, "LTF Line", defaults.getBlue(), 1.0f, null, true, true, true));
+	    lines.addRow(new MarkerDescriptor(LTF_MARKER, "LTF Marker", 
+	            Enums.MarkerType.CIRCLE, Enums.Size.SMALL, defaults.getBlue(), defaults.getLineColor(), true, true));
 	    
-	    lines.addRow(new PathDescriptor("TTFLine", "TTF Line", defaults.getRed(), 2.0f, 
-                null, true, true, true));
-	    lines.addRow(new MarkerDescriptor("TTFSHMarker", "TTF Swing High Marker", 
-	            Enums.MarkerType.CIRCLE, Enums.Size.LARGE, defaults.getGreen(), defaults.getLineColor(), true, true));
-	    lines.addRow(new MarkerDescriptor("TTFSLMarker", "TTF Swing Low Marker", 
-	            Enums.MarkerType.CIRCLE, Enums.Size.LARGE, defaults.getRed(), defaults.getLineColor(), true, true));
+	    lines.addRow(new PathDescriptor(TTF_LINE, "TTF Line", defaults.getRed(), 2.0f, null, true, true, true));
+	    lines.addRow(new MarkerDescriptor(TTF_MARKER, "TTF Marker", 
+	            Enums.MarkerType.CIRCLE, Enums.Size.MEDIUM, defaults.getRed(), defaults.getLineColor(), true, true));
 	    
 	    tab.addGroup(lines);
 	    
@@ -98,6 +97,15 @@ public class FibonacciStrategy extends Study {
 	    // Signals
 	    desc.declareSignal(Signals.BUY_STOP, "Buy Signal");
 	    desc.declareSignal(Signals.SELL_STOP, "Sell Signal");
+	}
+	
+	@Override
+	public void onLoad(Defaults defaults) {
+		this.graphicManager = new GraphicManager(
+				getSettings().getMarker(LTF_MARKER),
+				getSettings().getMarker(TTF_MARKER),
+				getSettings().getPath(LTF_LINE),
+				getSettings().getPath(TTF_LINE));
 	}
 	
 	public static <T> List<T> castList(Class<? extends T> clazz, Collection<?> c) {
@@ -173,56 +181,28 @@ public class FibonacciStrategy extends Study {
 		swingsLTF.addAll(tempSwingsLTF);
 	}
 	
-	public void drawMarker(SwingPoint swing, String markerName, Enums.Position position) {
-		MarkerInfo marker = getSettings().getMarker(markerName);
-		if (marker.isEnabled())
-			addFigure(
-					new Marker(swing.getCoordinate(), position, marker, String.format("Swing #%d", swing.getIndex())));
-	}
-	
-	public void drawLine(SwingPoint swing1, SwingPoint swing2, String lineName) {
-		PathInfo line = getSettings().getPath(lineName);
-		if (line.isEnabled())
-			addFigure(new Line(swing1.getCoordinate(), swing2.getCoordinate(), line));
-	}
-	
-	public void drawLTFMarkersAndLines() {
-		SwingPoint lastSwingHigh = null;
-		SwingPoint lastSwingLow = null;
-		
-		for (SwingPoint swing : swingsLTF) {
-			if (swing.isTop()) {
-				drawMarker(swing, Inputs.UP_MARKER, Enums.Position.TOP);
-				
-				if (lastSwingLow != null) drawLine(lastSwingLow, swing, Inputs.PATH);
-				lastSwingHigh = swing;
-			} else {
-				drawMarker(swing, Inputs.DOWN_MARKER, Enums.Position.BOTTOM);
-				
-				if (lastSwingHigh != null) drawLine(lastSwingHigh, swing, Inputs.PATH);
-				lastSwingLow = swing;
-			}
+	public void drawMarkersAndLines() {
+		for (Line line : this.graphicManager.getLTFLines(swingsLTF)) {
+			if (line != null) addFigure(line);
 		}
-	}
-	
-	public void drawTTFMarkersAndLines() {
-		SwingPoint lastSwingHigh = null;
-		SwingPoint lastSwingLow = null;
 		
+		for (Marker marker : this.graphicManager.getLTFMarkers(swingsLTF)) {
+			if (marker != null) addFigure(marker);
+		}
+		
+		List<SwingPoint> swings = new ArrayList<SwingPoint>();
 		for (SwingPoint swing : swingsLTF) {
 			if (!swingsTTFKeys.contains(swing.getIndex())) continue;
 			
-			if (swing.isTop()) {
-				drawMarker(swing, "TTFSHMarker", Enums.Position.TOP);
-				
-				if (lastSwingLow != null) drawLine(lastSwingLow, swing, "TTFLine");
-				lastSwingHigh = swing;
-			} else {
-				drawMarker(swing, "TTFSLMarker", Enums.Position.BOTTOM);
-				
-				if (lastSwingHigh != null) drawLine(lastSwingHigh, swing, "TTFLine");
-				lastSwingLow = swing;
-			}
+			swings.add(swing);
+		}
+		
+		for (Marker marker : this.graphicManager.getTTFMarkers(swings)) {
+			if (marker != null) addFigure(marker);
+		}
+		
+		for (Line line : this.graphicManager.getTTFLines(swings)) {
+			if (line != null) addFigure(line);
 		}
 	}
 	
@@ -472,11 +452,10 @@ public class FibonacciStrategy extends Study {
 		
 		deleteNeighborSwings();
 		
-		drawLTFMarkersAndLines();
 		computeTrend(true);
-		
-		drawTTFMarkersAndLines();
 		computeTrend(false);
+		
+		drawMarkersAndLines();
 		
 		computeRetraction(series);
 		prepareTrade(ctx, series);
