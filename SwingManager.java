@@ -11,6 +11,7 @@ import java.util.TreeSet;
 import com.motivewave.platform.sdk.common.DataSeries;
 import com.motivewave.platform.sdk.common.SwingPoint;
 
+
 public class SwingManager {
 	int strength;
 	
