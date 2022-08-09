@@ -10,6 +10,7 @@ import com.motivewave.platform.sdk.common.SwingPoint;
 import com.motivewave.platform.sdk.draw.Line;
 import com.motivewave.platform.sdk.draw.Marker;
 
+
 public class GraphicManager {
 	MarkerInfo ltfMarker;
 	MarkerInfo ttfMarker;
