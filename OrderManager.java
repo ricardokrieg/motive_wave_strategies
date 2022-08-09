@@ -1,21 +1,30 @@
 package ricardo_franco;
 
+import com.motivewave.platform.sdk.common.DataSeries;
+import com.motivewave.platform.sdk.common.SwingPoint;
 import com.motivewave.platform.sdk.common.Enums.OrderAction;
 import com.motivewave.platform.sdk.order_mgmt.OrderContext;
 
+
 public class OrderManager {
+	FibonacciStrategy study;
+	
 	OrderContext ctx;
 	int qty;
 	OrderObject currentOrder;
 	
-	public OrderManager(OrderContext ctx, int tradeLots) {
+	public OrderManager(FibonacciStrategy study, OrderContext ctx, int tradeLots) {
+		this.study = study;
+		
 		this.ctx = ctx;
 		this.qty = tradeLots * ctx.getInstrument().getDefaultQuantity();
 		
 		this.currentOrder = null;
 	}
 	
-	public void update(float price) {
+	public void update(DataSeries series, float price) {
+		this.observe(series);
+		
 		if (this.currentOrder == null) return;
 			
 		if (this.currentOrder.running) {
@@ -44,6 +53,50 @@ public class OrderManager {
 	//----------------------------------------------------------------------------------------------------------
 	//----------------------------------------------------------------------------------------------------------
 	
+	protected void observe(DataSeries series) {
+		if (!this.study.trendManager.onWave2) return;
+		if (!this.study.trendManager.validRetraction) return;
+		
+		if (this.study.trendManager.retraction > 40.0f) this.study.trendManager.reachedZone = true;
+		if (this.study.trendManager.retraction > 66.8f) this.study.trendManager.invalidatedZone = true;
+		
+		if (this.study.trendManager.reachedZone && !this.study.trendManager.invalidatedZone) {
+			//debug("Trade is valid. We can create the Stop order now.");
+			
+			SwingPoint lastSwingHigh = null;
+			SwingPoint lastSwingLow = null;
+			
+			for (SwingPoint swing : this.study.swingManager.swingsLTF) {
+				if (swing.isTop()) lastSwingHigh = swing;
+				if (swing.isBottom()) lastSwingLow = swing;
+			}
+			
+			if (this.study.trendManager.currentTrend == "up") {
+				if (lastSwingHigh != null) {
+					//this.study.debug(String.format("BUY @ %.5f", lastSwingHigh.getValue()));
+					this.placeSellOrder((float)lastSwingHigh.getValue());
+					//stopPrice = (float)lastSwingHigh.getValue();
+					//stopLossPrice = (float)lastSwingLow.getValue();
+					//takeProfitPrice
+					//orderAction = Enums.OrderAction.BUY;
+					//ctx.signal(lastSwingLow.getIndex(), Signals.BUY_STOP, "BUY", series.getClose(lastSwingLow.getIndex()));
+					
+					
+				}
+			} else if (this.study.trendManager.currentTrend == "down") {
+				if (lastSwingLow != null) {	
+					//this.study.debug(String.format("SELL @ %.5f", lastSwingLow.getValue()));
+					this.placeBuyOrder((float)lastSwingLow.getValue());
+					//stopPrice = (float)lastSwingLow.getValue();
+					//stopLossPrice = (float)lastSwingHigh.getValue();
+					//orderAction = Enums.OrderAction.SELL;
+					//ctx.signal(lastSwingHigh.getIndex(), Signals.SELL_STOP, "SELL", series.getClose(lastSwingHigh.getIndex()));
+					//debug(String.format("Sending signal %.5f #%d %.5f", stopPrice, lastSwing.getIndex(), series.getClose(lastSwing.getIndex())));
+				}
+			}
+		}
+	}
+	
 	protected void placeOrderAtMarket(boolean exit) {
 		if (exit) {
 			if (this.currentOrder.isBuy()) {
@@ -69,4 +122,43 @@ public class OrderManager {
 		this.ctx.sell(this.qty);
 		this.currentOrder.execute();
 	}
+	
+	/*public void openTrade(OrderContext ctx, Enums.OrderAction orderAction) {
+		if (ctx.getPosition() != 0) {
+			debug("Position is not zero");
+			return;
+		}
+		
+		if (stopPrice <= 0) {
+			debug("stopPrice is invalid");
+			return;
+		}
+		
+		Instrument instr = ctx.getInstrument();
+		// TODO the code is running twice, so I specify the half of the value I want
+		int lots = 200 / 2;
+		double tickSize = instr.getTickSize();
+		float spread = (instr.getSpread() / 2.0f) * (float)tickSize;
+		
+		debug("Openning Order");
+		debug(String.format("Lot Size: %d", lots));
+		debug(String.format("Stop Price Before: %.5f", stopPrice));
+		debug(String.format("Stop Loss Price: %.5f", stopLossPrice));
+		debug(String.format("Tick Size: %.5f", tickSize));
+		debug(String.format("Spread: %.5f", spread));
+		
+		if (orderAction == Enums.OrderAction.BUY) {
+			stopPrice += (tickSize + spread);
+		} else if (orderAction == Enums.OrderAction.SELL) {
+			stopPrice -= (tickSize + spread);
+		}
+		
+		debug(String.format("Stop Price After: %.5f", stopPrice));
+		
+		//ctx.cancelOrders();
+		//if (currentOrder != null) return; // TODO remove this
+		//currentOrder = ctx.createStopOrder(orderAction, Enums.TIF.GTC, lots, stopPrice);
+		//ctx.createStopOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, lots, stopPrice + (10.0f * (float)tickSize));
+		//ctx.createLimitOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, lots, stopPrice - (10.0f * (float)tickSize));
+	}*/
 }
