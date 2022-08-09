@@ -1,12 +1,7 @@
 package ricardo_franco;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import com.motivewave.platform.sdk.common.*;
 import com.motivewave.platform.sdk.common.desc.*;
@@ -43,9 +38,8 @@ public class FibonacciStrategy extends Study {
 	final static String TTF_LINE = "ttfLine";
 	
 	GraphicManager graphicManager;
-	
-	List<SwingPoint> swingsLTF = new ArrayList<SwingPoint>();
-	List<Integer> swingsTTFKeys = new ArrayList<Integer>();
+	OrderManager orderManager;
+	SwingManager swingManager;
 	
 	boolean onWave2 = false;
 	int wave2Index = 0;
@@ -106,93 +100,27 @@ public class FibonacciStrategy extends Study {
 				getSettings().getMarker(TTF_MARKER),
 				getSettings().getPath(LTF_LINE),
 				getSettings().getPath(TTF_LINE));
+		
+		this.swingManager = new SwingManager(getSettings().getInteger(Inputs.STRENGTH));
 	}
 	
-	public static <T> List<T> castList(Class<? extends T> clazz, Collection<?> c) {
-	    List<T> r = new ArrayList<T>(c.size());
-	    for(Object o: c)
-	      r.add(clazz.cast(o));
-	    return r;
-	}
-	
-	public List<SwingPoint> computeSwings(DataSeries series, boolean top, String markerName, Enums.Position position, String msg) {
-		return castList(SwingPoint.class, series.calcSwingPoints(top, getSettings().getInteger(Inputs.STRENGTH)));
-	}
-	
-	public void mergeSwings(List<SwingPoint> swings1, List<SwingPoint> swings2) {
-		Map<Integer, SwingPoint> mergedSwings = new HashMap<Integer, SwingPoint>();
-		
-		for (SwingPoint swing : swings1) {
-			mergedSwings.put(swing.getIndex(), swing);
-		}
-		
-		for (SwingPoint swing : swings2) {
-			mergedSwings.put(swing.getIndex(), swing);
-		}
-		
-		SortedSet<Integer> keys = new TreeSet<Integer>(mergedSwings.keySet());
-		for (Integer key : keys) {
-			SwingPoint swing = mergedSwings.get(key);
-			
-			swingsLTF.add(swing);
-		}
-	}
-	
-	public void deleteNeighborSwings() {
-		List<Integer> keysToKeep = new ArrayList<Integer>();
-		List<Integer> keysToIgnore = new ArrayList<Integer>();
-		
-		for (SwingPoint swing : swingsLTF) {
-			if (keysToIgnore.contains(swing.getIndex())) continue;
-			
-			double strength = swing.getAvgStrength();
-			Integer strengthKey = swing.getIndex();
-			
-			for (SwingPoint swingToCompare : swingsLTF) {
-				int keyToCompare = swingToCompare.getIndex();
-				if (keyToCompare > swing.getIndex()) {
-					
-					if (swingToCompare.isTop() == swing.isTop()) {
-						if (swingToCompare.getAvgStrength() > strength) {
-							strength = swingToCompare.getAvgStrength();
-							strengthKey = keyToCompare;
-						} else {
-							keysToIgnore.add(keyToCompare);
-						}
-					} else {
-						break;
-					}
-				}
-			}
-			
-			keysToKeep.add(strengthKey);
-		}
-		
-		List<SwingPoint> tempSwingsLTF = new ArrayList<SwingPoint>();
-		
-		for (SwingPoint swing : swingsLTF) {
-			int key = swing.getIndex();
-			if (keysToKeep.contains(key)) {
-				tempSwingsLTF.add(swing);
-			}
-		}
-		
-		swingsLTF.clear();
-		swingsLTF.addAll(tempSwingsLTF);
+	@Override
+	public void onActivate(OrderContext ctx) {
+		this.orderManager = new OrderManager(ctx, getSettings().getTradeLots());
 	}
 	
 	public void drawMarkersAndLines() {
-		for (Line line : this.graphicManager.getLTFLines(swingsLTF)) {
+		for (Line line : this.graphicManager.getLTFLines(this.swingManager.swingsLTF)) {
 			if (line != null) addFigure(line);
 		}
 		
-		for (Marker marker : this.graphicManager.getLTFMarkers(swingsLTF)) {
+		for (Marker marker : this.graphicManager.getLTFMarkers(this.swingManager.swingsLTF)) {
 			if (marker != null) addFigure(marker);
 		}
 		
 		List<SwingPoint> swings = new ArrayList<SwingPoint>();
-		for (SwingPoint swing : swingsLTF) {
-			if (!swingsTTFKeys.contains(swing.getIndex())) continue;
+		for (SwingPoint swing : this.swingManager.swingsLTF) {
+			if (!this.swingManager.swingsTTFKeys.contains(swing.getIndex())) continue;
 			
 			swings.add(swing);
 		}
@@ -207,8 +135,7 @@ public class FibonacciStrategy extends Study {
 	}
 	
 	public void clear() {
-		swingsLTF.clear();
-		swingsTTFKeys.clear();
+		this.swingManager.clear();
 		clearFigures();
 	}
 	
@@ -222,9 +149,9 @@ public class FibonacciStrategy extends Study {
 		SwingPoint leadingSwingHigh = null;
 		SwingPoint leadingSwingLow = null;
 		
-		for (SwingPoint swing : swingsLTF) {
+		for (SwingPoint swing : this.swingManager.swingsLTF) {
 			if (!ltfTrend) {
-				if (!swingsTTFKeys.contains(swing.getIndex())) continue;
+				if (!this.swingManager.swingsTTFKeys.contains(swing.getIndex())) continue;
 				
 				onWave2 = false;
 			}
@@ -247,7 +174,7 @@ public class FibonacciStrategy extends Study {
 							if (swing.getValue() < leadingSwingLow.getValue()) {
 								if (ltfTrend) {
 									if (highestSwingHigh != null) {
-										swingsTTFKeys.add(highestSwingHigh.getIndex());
+										this.swingManager.swingsTTFKeys.add(highestSwingHigh.getIndex());
 									}
 								}
 								
@@ -277,7 +204,7 @@ public class FibonacciStrategy extends Study {
 							if (swing.getValue() > leadingSwingHigh.getValue()) {
 								if (ltfTrend) {
 									if (lowestSwingLow != null) {
-										swingsTTFKeys.add(lowestSwingLow.getIndex());
+										this.swingManager.swingsTTFKeys.add(lowestSwingLow.getIndex());
 									}
 								}
 								
@@ -312,18 +239,18 @@ public class FibonacciStrategy extends Study {
 		//debug(String.format("On Wave 2? %b", onWave2));
 		if (!onWave2) return;
 		
-		if (swingsTTFKeys.size() < 2) {
+		if (this.swingManager.swingsTTFKeys.size() < 2) {
 			debug("Not enough swing points to compute correction");
 			return;
 		}
 		
-		int swing1Index = swingsTTFKeys.get(swingsTTFKeys.size() - 2);
-		int swing2Index = swingsTTFKeys.get(swingsTTFKeys.size() - 1);
+		int swing1Index = this.swingManager.swingsTTFKeys.get(this.swingManager.swingsTTFKeys.size() - 2);
+		int swing2Index = this.swingManager.swingsTTFKeys.get(this.swingManager.swingsTTFKeys.size() - 1);
 		
 		SwingPoint swing1 = null;
 		SwingPoint swing2 = null;
 		
-		for (SwingPoint swing : swingsLTF) {
+		for (SwingPoint swing : this.swingManager.swingsLTF) {
 			if (swing.getIndex() == swing1Index) swing1 = swing;
 			if (swing.getIndex() == swing2Index) swing2 = swing;
 			
@@ -373,7 +300,7 @@ public class FibonacciStrategy extends Study {
 			SwingPoint lastSwingHigh = null;
 			SwingPoint lastSwingLow = null;
 			
-			for (SwingPoint swing : swingsLTF) {
+			for (SwingPoint swing : this.swingManager.swingsLTF) {
 				if (swing.isTop()) lastSwingHigh = swing;
 				if (swing.isBottom()) lastSwingLow = swing;
 			}
@@ -445,12 +372,7 @@ public class FibonacciStrategy extends Study {
 		
 		DataSeries series = ctx.getDataSeries();
 		
-		List<SwingPoint> swingsHigh = computeSwings(series, true, Inputs.UP_MARKER, Enums.Position.TOP, "Swing High");
-		List<SwingPoint> swingsLow = computeSwings(series, false, Inputs.DOWN_MARKER, Enums.Position.BOTTOM, "Swing Low");
-		
-		mergeSwings(swingsHigh, swingsLow);
-		
-		deleteNeighborSwings();
+		this.swingManager.update(series);
 		
 		computeTrend(true);
 		computeTrend(false);
@@ -522,6 +444,9 @@ public class FibonacciStrategy extends Study {
 	@Override
 	public void onSignal(OrderContext ctx, Object signal) {
 		debug("SIGNAL!!!!!");
+		
+		//this.orderManager.placeOrder();
+		
 		if (currentOrder == null) {
 			debug("PLACING ORDER");
 			currentOrder = ctx.createStopOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, 100, 1.18200f);
