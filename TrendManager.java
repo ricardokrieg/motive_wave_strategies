@@ -1,11 +1,12 @@
 package ricardo_franco;
 
-import java.util.List;
-
 import com.motivewave.platform.sdk.common.DataSeries;
 import com.motivewave.platform.sdk.common.SwingPoint;
 
+
 public class TrendManager {
+	FibonacciStrategy study;
+	
 	boolean onWave2;
 	int wave2Index;
 	String currentTrend;
@@ -17,7 +18,9 @@ public class TrendManager {
 	boolean reachedZone;
 	boolean invalidatedZone;
 	
-	public TrendManager() {
+	public TrendManager(FibonacciStrategy study) {
+		this.study = study;
+		
 		this.onWave2 = false;
 		this.wave2Index = 0;
 		this.currentTrend = null;
@@ -30,17 +33,17 @@ public class TrendManager {
 		this.invalidatedZone = false;
 	}
 	
-	public void update(List<SwingPoint> swingsLTF, List<Integer> swingsTTFKeys, DataSeries series) {
-		this.computeTrend(swingsLTF, swingsTTFKeys, true);
-		this.computeTrend(swingsLTF, swingsTTFKeys, false);
+	public void update(DataSeries series) {
+		this.computeTrend(true);
+		this.computeTrend(false);
 		
-		this.computeRetraction(swingsLTF, swingsTTFKeys, series);
+		this.computeRetraction(series);
 	}
 	
 	//----------------------------------------------------------------------------------------------------------
 	//----------------------------------------------------------------------------------------------------------
 	
-	protected void computeTrend(List<SwingPoint> swingsLTF, List<Integer> swingsTTFKeys, boolean ltfTrend) {
+	protected void computeTrend(boolean ltfTrend) {
 		currentTrend = null;
 		
 		SwingPoint lastSwingHigh = null;
@@ -50,9 +53,9 @@ public class TrendManager {
 		SwingPoint leadingSwingHigh = null;
 		SwingPoint leadingSwingLow = null;
 		
-		for (SwingPoint swing : swingsLTF) {
+		for (SwingPoint swing : this.study.swingManager.swingsLTF) {
 			if (!ltfTrend) {
-				if (!swingsTTFKeys.contains(swing.getIndex())) continue;
+				if (!this.study.swingManager.swingsTTFKeys.contains(swing.getIndex())) continue;
 				
 				onWave2 = false;
 			}
@@ -75,7 +78,7 @@ public class TrendManager {
 							if (swing.getValue() < leadingSwingLow.getValue()) {
 								if (ltfTrend) {
 									if (highestSwingHigh != null) {
-										swingsTTFKeys.add(highestSwingHigh.getIndex());
+										this.study.swingManager.swingsTTFKeys.add(highestSwingHigh.getIndex());
 									}
 								}
 								
@@ -105,7 +108,7 @@ public class TrendManager {
 							if (swing.getValue() > leadingSwingHigh.getValue()) {
 								if (ltfTrend) {
 									if (lowestSwingLow != null) {
-										swingsTTFKeys.add(lowestSwingLow.getIndex());
+										this.study.swingManager.swingsTTFKeys.add(lowestSwingLow.getIndex());
 									}
 								}
 								
@@ -134,24 +137,24 @@ public class TrendManager {
 		}
 	}
 	
-	protected void computeRetraction(List<SwingPoint> swingsLTF, List<Integer> swingsTTFKeys, DataSeries series) {
+	protected void computeRetraction(DataSeries series) {
 		validRetraction = false;
 		
 		//debug(String.format("On Wave 2? %b", onWave2));
 		if (!onWave2) return;
 		
-		if (swingsTTFKeys.size() < 2) {
+		if (this.study.swingManager.swingsTTFKeys.size() < 2) {
 			//debug("Not enough swing points to compute correction");
 			return;
 		}
 		
-		int swing1Index = swingsTTFKeys.get(swingsTTFKeys.size() - 2);
-		int swing2Index = swingsTTFKeys.get(swingsTTFKeys.size() - 1);
+		int swing1Index = this.study.swingManager.swingsTTFKeys.get(this.study.swingManager.swingsTTFKeys.size() - 2);
+		int swing2Index = this.study.swingManager.swingsTTFKeys.get(this.study.swingManager.swingsTTFKeys.size() - 1);
 		
 		SwingPoint swing1 = null;
 		SwingPoint swing2 = null;
 		
-		for (SwingPoint swing : swingsLTF) {
+		for (SwingPoint swing : this.study.swingManager.swingsLTF) {
 			if (swing.getIndex() == swing1Index) swing1 = swing;
 			if (swing.getIndex() == swing2Index) swing2 = swing;
 			
