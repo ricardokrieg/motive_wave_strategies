@@ -2,6 +2,7 @@ package ricardo_franco;
 
 import com.motivewave.platform.sdk.common.Enums.OrderAction;
 
+
 public class OrderObject {
 	
 	OrderAction orderAction;
