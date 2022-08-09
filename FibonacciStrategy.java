@@ -3,12 +3,25 @@ package ricardo_franco;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.motivewave.platform.sdk.common.*;
-import com.motivewave.platform.sdk.common.desc.*;
+import com.motivewave.platform.sdk.common.DataContext;
+import com.motivewave.platform.sdk.common.DataSeries;
+import com.motivewave.platform.sdk.common.Defaults;
+import com.motivewave.platform.sdk.common.Enums;
+import com.motivewave.platform.sdk.common.Inputs;
+import com.motivewave.platform.sdk.common.SwingPoint;
+import com.motivewave.platform.sdk.common.desc.IntegerDescriptor;
+import com.motivewave.platform.sdk.common.desc.MarkerDescriptor;
+import com.motivewave.platform.sdk.common.desc.PathDescriptor;
+import com.motivewave.platform.sdk.common.desc.SettingGroup;
+import com.motivewave.platform.sdk.common.desc.SettingTab;
+import com.motivewave.platform.sdk.common.desc.SettingsDescriptor;
+import com.motivewave.platform.sdk.common.desc.ValueDescriptor;
 import com.motivewave.platform.sdk.draw.Line;
 import com.motivewave.platform.sdk.draw.Marker;
-import com.motivewave.platform.sdk.study.*;
-import com.motivewave.platform.sdk.order_mgmt.*;
+import com.motivewave.platform.sdk.order_mgmt.OrderContext;
+import com.motivewave.platform.sdk.study.RuntimeDescriptor;
+import com.motivewave.platform.sdk.study.Study;
+import com.motivewave.platform.sdk.study.StudyHeader;
 
 
 /** Trading using Fibonacci retraction zone, following the trend */
@@ -41,13 +54,6 @@ public class FibonacciStrategy extends Study {
 	OrderManager orderManager;
 	SwingManager swingManager;
 	TrendManager trendManager;
-	
-	boolean checkOrders = false;
-	Order currentOrder = null;
-	float stopPrice = 0;
-	float stopLossPrice = 0;
-	float takeProfitPrice = 0;
-	Enums.OrderAction orderAction = null;
 	
 	public void initialize(Defaults defaults) {
 	    SettingsDescriptor sd = new SettingsDescriptor();
@@ -92,12 +98,12 @@ public class FibonacciStrategy extends Study {
 				getSettings().getPath(TTF_LINE));
 		
 		this.swingManager = new SwingManager(getSettings().getInteger(Inputs.STRENGTH));
-		this.trendManager = new TrendManager();
+		this.trendManager = new TrendManager(this);
 	}
 	
 	@Override
 	public void onActivate(OrderContext ctx) {
-		this.orderManager = new OrderManager(ctx, getSettings().getTradeLots());
+		this.orderManager = new OrderManager(this, ctx, getSettings().getTradeLots());
 	}
 	
 	public void drawMarkersAndLines() {
@@ -130,85 +136,6 @@ public class FibonacciStrategy extends Study {
 		clearFigures();
 	}
 	
-	public void prepareTrade(DataContext ctx, DataSeries series) {
-		if (!this.trendManager.onWave2) return;
-		if (!this.trendManager.validRetraction) return;
-		
-		if (this.trendManager.retraction > 40.0f) this.trendManager.reachedZone = true;
-		if (this.trendManager.retraction > 66.8f) this.trendManager.invalidatedZone = true;
-		
-		if (this.trendManager.reachedZone && !this.trendManager.invalidatedZone) {
-			debug("Trade is valid. We can create the Stop order now.");
-			
-			SwingPoint lastSwingHigh = null;
-			SwingPoint lastSwingLow = null;
-			
-			for (SwingPoint swing : this.swingManager.swingsLTF) {
-				if (swing.isTop()) lastSwingHigh = swing;
-				if (swing.isBottom()) lastSwingLow = swing;
-			}
-			
-			if (this.trendManager.currentTrend == "up") {
-				if (lastSwingHigh != null) {
-					debug(String.format("BUY @ %.5f", lastSwingHigh.getValue()));
-					stopPrice = (float)lastSwingHigh.getValue();
-					stopLossPrice = (float)lastSwingLow.getValue();
-					//takeProfitPrice
-					orderAction = Enums.OrderAction.BUY;
-					//ctx.signal(lastSwingLow.getIndex(), Signals.BUY_STOP, "BUY", series.getClose(lastSwingLow.getIndex()));
-				}
-			} else if (this.trendManager.currentTrend == "down") {
-				if (lastSwingLow != null) {	
-					debug(String.format("SELL @ %.5f", lastSwingLow.getValue()));
-					stopPrice = (float)lastSwingLow.getValue();
-					stopLossPrice = (float)lastSwingHigh.getValue();
-					orderAction = Enums.OrderAction.SELL;
-					//ctx.signal(lastSwingHigh.getIndex(), Signals.SELL_STOP, "SELL", series.getClose(lastSwingHigh.getIndex()));
-					//debug(String.format("Sending signal %.5f #%d %.5f", stopPrice, lastSwing.getIndex(), series.getClose(lastSwing.getIndex())));
-				}
-			}
-		}
-	}
-
-	public void openTrade(OrderContext ctx, Enums.OrderAction orderAction) {
-		if (ctx.getPosition() != 0) {
-			debug("Position is not zero");
-			return;
-		}
-		
-		if (stopPrice <= 0) {
-			debug("stopPrice is invalid");
-			return;
-		}
-		
-		Instrument instr = ctx.getInstrument();
-		// TODO the code is running twice, so I specify the half of the value I want
-		int lots = 200 / 2;
-		double tickSize = instr.getTickSize();
-		float spread = (instr.getSpread() / 2.0f) * (float)tickSize;
-		
-		debug("Openning Order");
-		debug(String.format("Lot Size: %d", lots));
-		debug(String.format("Stop Price Before: %.5f", stopPrice));
-		debug(String.format("Stop Loss Price: %.5f", stopLossPrice));
-		debug(String.format("Tick Size: %.5f", tickSize));
-		debug(String.format("Spread: %.5f", spread));
-		
-		if (orderAction == Enums.OrderAction.BUY) {
-			stopPrice += (tickSize + spread);
-		} else if (orderAction == Enums.OrderAction.SELL) {
-			stopPrice -= (tickSize + spread);
-		}
-		
-		debug(String.format("Stop Price After: %.5f", stopPrice));
-		
-		//ctx.cancelOrders();
-		//if (currentOrder != null) return; // TODO remove this
-		//currentOrder = ctx.createStopOrder(orderAction, Enums.TIF.GTC, lots, stopPrice);
-		//ctx.createStopOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, lots, stopPrice + (10.0f * (float)tickSize));
-		//ctx.createLimitOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, lots, stopPrice - (10.0f * (float)tickSize));
-	}
-	
 	@Override
 	public void onBarClose(DataContext ctx) {
 		clear();
@@ -216,82 +143,12 @@ public class FibonacciStrategy extends Study {
 		DataSeries series = ctx.getDataSeries();
 		
 		this.swingManager.update(series);
-		this.trendManager.update(this.swingManager.swingsLTF, this.swingManager.swingsTTFKeys, series);
+		this.trendManager.update(series);
 		
 		drawMarkersAndLines();
 		
-		prepareTrade(ctx, series);
+		this.orderManager.update(series, series.getClose());
 
 		super.onBarClose(ctx);
-	}
-	
-	@Override
-	public void onBarUpdate(OrderContext ctx) {
-		// FIXME just faking an order
-		DataSeries series = ctx.getDataContext().getDataSeries();
-		if (series.getClose() < 1.18140f) {
-			if (currentOrder == null) {
-				//currentOrder = ctx.createStopOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, 100, 1.18200f);
-				//ctx.createLimitOrder(Enums.OrderAction.SELL, Enums.TIF.GTC, 100, 1.18260f);
-			}
-		}
-		
-		if (this.trendManager.invalidatedZone && currentOrder != null && ctx.getPosition() == 0) {
-			//ctx.cancelOrders();
-		}
-		
-		if (orderAction == Enums.OrderAction.BUY) {
-			debug("BUY signal");
-		} else if (orderAction == Enums.OrderAction.SELL) {
-			debug("SELL signal");
-		} else {
-			return;
-		}
-		
-		openTrade(ctx, orderAction);
-		
-		orderAction = null;
-		stopPrice = 0;
-		
-		checkOrders = true;
-		
-		super.onBarUpdate(ctx);
-	}
-	
-	@Override
-	protected void calculate(int index, DataContext ctx) {
-		DataSeries series = ctx.getDataSeries();
-		
-		if (!series.isBarComplete(index)) return;
-		
-		if (checkOrders) {
-		}
-		checkOrders = false;
-		
-		if (series.getClose() < 1.18140f) {
-			ctx.signal(index, Signals.SELL_STOP, "Sell Now!", series.getClose(index));
-			/*if (currentOrder == null) {
-				//currentOrder = ctx.createStopOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, 100, 1.18200f);
-				//ctx.createLimitOrder(Enums.OrderAction.SELL, Enums.TIF.GTC, 100, 1.18260f);
-				debug("HALO 4");
-				ctx.signal(series.getEndIndex() - 1, Signals.SELL_STOP, "Sell Now!", series.getClose());
-			}*/
-		}
-
-		series.setComplete(index);
-	}
-	
-	@Override
-	public void onSignal(OrderContext ctx, Object signal) {
-		debug("SIGNAL!!!!!");
-		
-		//this.orderManager.placeOrder();
-		
-		if (currentOrder == null) {
-			debug("PLACING ORDER");
-			currentOrder = ctx.createStopOrder(Enums.OrderAction.BUY, Enums.TIF.GTC, 100, 1.18200f);
-			ctx.createLimitOrder(Enums.OrderAction.SELL, Enums.TIF.GTC, 100, 1.18260f);
-			ctx.buy(100);
-		}
 	}
 }
