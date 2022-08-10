@@ -60,9 +60,8 @@ public class OrderManager {
 		if (!this.study.trendManager.onWave2) return;
 		if (!this.study.trendManager.validRetraction) return;
 		
-		// TODO consider all candles since last TTF swing when checking if invalidated zone
-		if (this.study.trendManager.currentRetraction > retractionStart) this.study.trendManager.reachedZone = true;
-		if (this.study.trendManager.currentRetraction > retractionEnd) this.study.trendManager.invalidatedZone = true;
+		if (this.study.trendManager.maxRetraction > retractionStart) this.study.trendManager.reachedZone = true;
+		if (this.study.trendManager.maxRetraction > retractionEnd) this.study.trendManager.invalidatedZone = true;
 		
 		this.study.debug(String.format("Reached Zone? %b", this.study.trendManager.reachedZone));
 		this.study.debug(String.format("Invalidated Zone? %b", this.study.trendManager.invalidatedZone));

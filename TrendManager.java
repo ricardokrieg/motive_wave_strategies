@@ -190,17 +190,16 @@ public class TrendManager {
 				highestSwing = Util.max(highestSwing, swing.getValue());
 			}
 			this.maxRetraction = (highestSwing - swing2.getValue()) * 100.0f / diff;
-			this.study.debug(String.format("Highest Swing: %.5f", highestSwing));
 		}
 		
-		this.study.debug(String.format("Swing 2 is Top? %b", swing2.isTop()));
-		this.study.debug(String.format("Close: %.5f", series.getClose()));
+		//this.study.debug(String.format("Swing 2 is Top? %b", swing2.isTop()));
+		//this.study.debug(String.format("Close: %.5f", series.getClose()));
 		this.study.debug(String.format("Swing 1: %.5f", swing1.getValue()));
 		this.study.debug(String.format("Swing 2: %.5f", swing2.getValue()));
 		this.study.debug(String.format("Retraction: %.2f%%", this.currentRetraction));
 		this.study.debug(String.format("Max Retraction: %.2f%%", this.maxRetraction));
-		this.study.debug(String.format("Retraction 50%%: %.5f", this.retraction50));
-		this.study.debug(String.format("Retraction 61.8%%: %.5f", this.retraction618));
+		//this.study.debug(String.format("Retraction 50%%: %.5f", this.retraction50));
+		//this.study.debug(String.format("Retraction 61.8%%: %.5f", this.retraction618));
 	}
 	
 	protected void confirmWave2(SwingPoint swing) {
