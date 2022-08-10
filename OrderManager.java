@@ -64,9 +64,13 @@ public class OrderManager {
 		if (this.study.trendManager.maxRetraction > retractionEnd) this.study.trendManager.invalidatedZone = true;
 		
 		this.study.debug(String.format("Reached Zone? %b", this.study.trendManager.reachedZone));
-		this.study.debug(String.format("Invalidated Zone? %b", this.study.trendManager.invalidatedZone));
+		this.study.debug(String.format("Invalidated Zone? %b", this.study.trendManager.invalidatedZone)); 
 		
-		if (!this.study.trendManager.reachedZone || this.study.trendManager.invalidatedZone) return;
+		if (!this.study.trendManager.reachedZone || this.study.trendManager.invalidatedZone) {
+			if (this.currentOrder != null) this.study.debug("Cancel pending orders");
+			this.currentOrder = null;
+			return;
+		}
 		
 		this.study.debug("Trade is valid. We can create the Stop Order now.");
 		
