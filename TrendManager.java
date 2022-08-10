@@ -189,7 +189,8 @@ public class TrendManager {
 				
 				highestSwing = Util.max(highestSwing, swing.getValue());
 			}
-			this.maxRetraction = (swing2.getValue() - highestSwing) * 100.0f / diff;
+			this.maxRetraction = (highestSwing - swing2.getValue()) * 100.0f / diff;
+			this.study.debug(String.format("Highest Swing: %.5f", highestSwing));
 		}
 		
 		this.study.debug(String.format("Swing 2 is Top? %b", swing2.isTop()));
