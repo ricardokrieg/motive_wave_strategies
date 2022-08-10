@@ -69,7 +69,7 @@ public class OrderManager {
 		this.study.debug(String.format("Reached Zone? %b", this.study.trendManager.reachedZone));
 		this.study.debug(String.format("Invalidated Zone? %b", this.study.trendManager.invalidatedZone)); 
 		
-		if (!this.study.trendManager.reachedZone || this.study.trendManager.invalidatedZone) {
+		if (this.study.trendManager.currentRetraction < 0 || !this.study.trendManager.reachedZone || this.study.trendManager.invalidatedZone) {
 			if (this.currentOrder != null) this.study.debug("Cancel pending orders");
 			this.currentOrder = null;
 			return;
@@ -149,6 +149,8 @@ public class OrderManager {
 			} else if (this.currentOrder.isSell()) {
 				this.buyAtMarket();
 			}
+			
+			this.currentOrder = null;
 		} else {
 			this.study.debug("Entry Order filled");
 			
