@@ -123,6 +123,9 @@ public class TrendManager {
 						}
 					}
 				}
+				
+				// TODO trading all swings
+				this.checkWave(ltfTrend, swing, lastSwingLow, lastSwingHigh);
 			}
 			
 			if (swing.isTop())
@@ -209,5 +212,23 @@ public class TrendManager {
 		this.invalidatedZone = false;
 		
 		// this.study.debug(String.format("Wave 2 confirmed on index #%d", this.wave2Index));
+	}
+	
+	protected void checkWave(boolean ltfTrend, SwingPoint swing, SwingPoint lastSwingLow, SwingPoint lastSwingHigh) {
+		if (ltfTrend) return;
+		
+		if (swing.isTop()) {
+			if (lastSwingHigh == null) return;
+			
+			if (swing.getValue() > lastSwingHigh.getValue()) {
+				this.confirmWave2(swing);
+			}
+		} else {
+			if (lastSwingLow == null) return;
+			
+			if (swing.getValue() < lastSwingLow.getValue()) {
+				this.confirmWave2(swing);
+			}
+		}
 	}
 }

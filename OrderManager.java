@@ -87,13 +87,14 @@ public class OrderManager {
 		
 		if (this.study.trendManager.currentTrend == "up") {
 			if (lastSwingHigh != null) {
-				double entry = lastSwingHigh.getValue();
-				double sl = lastSwingLow.getValue();
-				double tp = (2.0f * lastSwingHigh.getValue()) - lastSwingLow.getValue();
+				double entry = this.getEntry(series, lastSwingHigh, true);
+				double sl = this.getEntry(series, lastSwingLow, false);
+				double tp = (2.0f * entry) - sl;
 				
 				double SLDistance = entry - sl;
 				double minSLDistance = this.getMinSLDistance(series);
 				if (SLDistance < minSLDistance) {
+					this.study.debug(String.format("Entry: %.5f / SL: %.5f", entry, sl));
 					this.study.debug(String.format("SL too close: %.5f (min is %.5f)", SLDistance, minSLDistance));
 					return;
 				}
@@ -112,13 +113,14 @@ public class OrderManager {
 			}
 		} else if (this.study.trendManager.currentTrend == "down") {
 			if (lastSwingLow != null) {
-				double entry = lastSwingLow.getValue();
-				double sl = lastSwingHigh.getValue();
-				double tp = (2.0f * lastSwingLow.getValue()) - lastSwingHigh.getValue();
+				double entry = this.getEntry(series, lastSwingLow, false);
+				double sl = this.getEntry(series, lastSwingHigh, true);
+				double tp = (2.0f * entry) - sl;
 				
 				double SLDistance = sl - entry;
 				double minSLDistance = this.getMinSLDistance(series);
 				if (SLDistance < minSLDistance) {
+					this.study.debug(String.format("Entry: %.5f / SL: %.5f", entry, sl));
 					this.study.debug(String.format("SL too close: %.5f (min is %.5f)", SLDistance, minSLDistance));
 					return;
 				}
@@ -166,6 +168,17 @@ public class OrderManager {
 	protected void sellAtMarket() {
 		this.ctx.sell(this.qty);
 		this.currentOrder.execute();
+	}
+	
+	protected double getEntry(DataSeries series, SwingPoint swing, boolean isBuy) {
+		double pointSize = series.getInstrument().getPointSize();
+		double spread = series.getInstrument().getSpread();
+		double diff = (pointSize * spread) + pointSize;
+		
+		if (isBuy)
+			return swing.getValue() + diff;
+		else
+			return swing.getValue() - diff;
 	}
 	
 	protected double getMinSLDistance(DataSeries series) {
