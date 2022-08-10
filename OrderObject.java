@@ -7,11 +7,15 @@ public class OrderObject {
 	
 	OrderAction orderAction;
 	float price;
+	float sl;
+	float tp;
 	boolean running;
 
-	public OrderObject(OrderAction orderAction, float price) {
+	public OrderObject(OrderAction orderAction, float price, float sl, float tp) {
 		this.orderAction = orderAction;
 		this.price = price;
+		this.sl = sl;
+		this.tp = tp;
 		
 		this.running = false;
 	}
@@ -25,11 +29,11 @@ public class OrderObject {
 	}
 	
 	public boolean isStopLossPrice(float price) {
-		return false;
+		return (this.isBuy() && price <= this.sl) || (this.isSell() && price >= this.sl);
 	}
 	
 	public boolean isTakeProfitPrice(float price) {
-		return false;
+		return (this.isBuy() && price >= this.tp) || (this.isSell() && price <= this.tp);
 	}
 	
 	public boolean isBuy() {

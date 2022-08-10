@@ -41,16 +41,16 @@ public class OrderManager {
 		}
 	}
 	
-	public void placeOrder(float price, OrderAction orderAction) {
-		this.currentOrder = new OrderObject(orderAction, price);
+	public void placeOrder(float price, OrderAction orderAction, float sl, float tp) {
+		this.currentOrder = new OrderObject(orderAction, price, sl, tp);
 	}
 	
-	public void placeBuyOrder(float price) {
-		this.currentOrder = new OrderObject(OrderAction.BUY, price);
+	public void placeBuyOrder(float price, float sl, float tp) {
+		this.currentOrder = new OrderObject(OrderAction.BUY, price, sl, tp);
 	}
 	
-	public void placeSellOrder(float price) {
-		this.currentOrder = new OrderObject(OrderAction.SELL, price);
+	public void placeSellOrder(float price, float sl, float tp) {
+		this.currentOrder = new OrderObject(OrderAction.SELL, price, sl, tp);
 	}
 	
 	//----------------------------------------------------------------------------------------------------------
@@ -66,43 +66,51 @@ public class OrderManager {
 		this.study.debug(String.format("Reached Zone? %b", this.study.trendManager.reachedZone));
 		this.study.debug(String.format("Invalidated Zone? %b", this.study.trendManager.invalidatedZone));
 		
-		if (this.study.trendManager.reachedZone && !this.study.trendManager.invalidatedZone) {
-			this.study.debug("Trade is valid. We can create the Stop order now.");
-			
-			SwingPoint lastSwingHigh = null;
-			SwingPoint lastSwingLow = null;
-			
-			for (SwingPoint swing : this.study.swingManager.swingsLTF) {
-				if (swing.isTop()) lastSwingHigh = swing;
-				if (swing.isBottom()) lastSwingLow = swing;
+		if (!this.study.trendManager.reachedZone || this.study.trendManager.invalidatedZone) return;
+		
+		this.study.debug("Trade is valid. We can create the Stop Order now.");
+		
+		SwingPoint lastSwingHigh = null;
+		SwingPoint lastSwingLow = null;
+		
+		for (SwingPoint swing : this.study.swingManager.swingsLTF) {
+			if (swing.isTop()) lastSwingHigh = swing;
+			if (swing.isBottom()) lastSwingLow = swing;
+		}
+		
+		if (this.study.trendManager.currentTrend == "up") {
+			if (lastSwingHigh != null) {
+				double sl = lastSwingLow.getValue();
+				double tp = (2.0f * lastSwingHigh.getValue()) - lastSwingLow.getValue();
+				
+				this.study.debug(String.format("BUY @ %.5f", lastSwingHigh.getValue()));
+				this.study.debug(String.format("SL @ %.5f", sl));
+				this.study.debug(String.format("TP @ %.5f", tp));
+				
+				this.placeBuyOrder((float)lastSwingHigh.getValue(), (float)sl, (float)tp);
+				
+				//stopPrice = (float)lastSwingHigh.getValue();
+				//stopLossPrice = (float)lastSwingLow.getValue();
+				//takeProfitPrice
+				//orderAction = Enums.OrderAction.BUY;
+				//ctx.signal(lastSwingLow.getIndex(), Signals.BUY_STOP, "BUY", series.getClose(lastSwingLow.getIndex()));
 			}
-			
-			if (this.study.trendManager.currentTrend == "up") {
-				if (lastSwingHigh != null) {
-					this.study.debug(String.format("BUY @ %.5f", lastSwingHigh.getValue()));
-					this.study.debug(String.format("SL @ %.5f", lastSwingLow.getValue()));
-					
-					this.placeBuyOrder((float)lastSwingHigh.getValue());
-					
-					//stopPrice = (float)lastSwingHigh.getValue();
-					//stopLossPrice = (float)lastSwingLow.getValue();
-					//takeProfitPrice
-					//orderAction = Enums.OrderAction.BUY;
-					//ctx.signal(lastSwingLow.getIndex(), Signals.BUY_STOP, "BUY", series.getClose(lastSwingLow.getIndex()));
-				}
-			} else if (this.study.trendManager.currentTrend == "down") {
-				if (lastSwingLow != null) {	
-					this.study.debug(String.format("SELL @ %.5f", lastSwingLow.getValue()));
-					this.study.debug(String.format("SL @ %.5f", lastSwingHigh.getValue()));
-					
-					this.placeSellOrder((float)lastSwingLow.getValue());
-					
-					//stopPrice = (float)lastSwingLow.getValue();
-					//stopLossPrice = (float)lastSwingHigh.getValue();
-					//orderAction = Enums.OrderAction.SELL;
-					//ctx.signal(lastSwingHigh.getIndex(), Signals.SELL_STOP, "SELL", series.getClose(lastSwingHigh.getIndex()));
-					//debug(String.format("Sending signal %.5f #%d %.5f", stopPrice, lastSwing.getIndex(), series.getClose(lastSwing.getIndex())));
-				}
+		} else if (this.study.trendManager.currentTrend == "down") {
+			if (lastSwingLow != null) {
+				double sl = lastSwingHigh.getValue();
+				double tp = (2.0f * lastSwingLow.getValue()) - lastSwingHigh.getValue();
+				
+				this.study.debug(String.format("SELL @ %.5f", lastSwingLow.getValue()));
+				this.study.debug(String.format("SL @ %.5f", sl));
+				this.study.debug(String.format("TP @ %.5f", tp));
+				
+				this.placeSellOrder((float)lastSwingLow.getValue(), (float)sl, (float)tp);
+				
+				//stopPrice = (float)lastSwingLow.getValue();
+				//stopLossPrice = (float)lastSwingHigh.getValue();
+				//orderAction = Enums.OrderAction.SELL;
+				//ctx.signal(lastSwingHigh.getIndex(), Signals.SELL_STOP, "SELL", series.getClose(lastSwingHigh.getIndex()));
+				//debug(String.format("Sending signal %.5f #%d %.5f", stopPrice, lastSwing.getIndex(), series.getClose(lastSwing.getIndex())));
 			}
 		}
 	}
