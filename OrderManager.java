@@ -27,10 +27,12 @@ public class OrderManager {
 	}
 	
 	public void update(DataSeries series, float price) {
-		this.observe(series);
+		if (this.ctx.getPosition() == 0) {
+			this.observe(series);
+		}
 		
 		if (this.currentOrder == null) return;
-			
+
 		if (this.currentOrder.running) {
 			if (this.currentOrder.isStopLossPrice(price) || this.currentOrder.isTakeProfitPrice(price)) {
 				this.placeOrderAtMarket(true);
@@ -90,7 +92,7 @@ public class OrderManager {
 				double tp = (2.0f * lastSwingHigh.getValue()) - lastSwingLow.getValue();
 				
 				double SLDistance = entry - sl;
-				double minSLDistance = Util.min(series.getInstrument().getTickSize() * 10, series.getInstrument().getSpread() * 5);
+				double minSLDistance = Util.max(series.getInstrument().getTickSize() * 100, series.getInstrument().getSpread() * 5);
 				if (SLDistance < minSLDistance) {
 					this.study.debug(String.format("SL too close: %.5f (min is %.5f)", SLDistance, minSLDistance));
 					return;
@@ -115,7 +117,7 @@ public class OrderManager {
 				double tp = (2.0f * lastSwingLow.getValue()) - lastSwingHigh.getValue();
 				
 				double SLDistance = sl - entry;
-				double minSLDistance = Util.min(series.getInstrument().getTickSize() * 10, series.getInstrument().getSpread() * 5);
+				double minSLDistance = Util.max(series.getInstrument().getTickSize() * 100, series.getInstrument().getSpread() * 5);
 				if (SLDistance < minSLDistance) {
 					this.study.debug(String.format("SL too close: %.5f (min is %.5f)", SLDistance, minSLDistance));
 					return;
