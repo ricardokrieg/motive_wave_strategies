@@ -2,6 +2,7 @@ package ricardo_franco;
 
 import com.motivewave.platform.sdk.common.DataSeries;
 import com.motivewave.platform.sdk.common.SwingPoint;
+import com.motivewave.platform.sdk.common.Util;
 import com.motivewave.platform.sdk.common.Enums.OrderAction;
 import com.motivewave.platform.sdk.order_mgmt.OrderContext;
 
@@ -84,14 +85,22 @@ public class OrderManager {
 		
 		if (this.study.trendManager.currentTrend == "up") {
 			if (lastSwingHigh != null) {
+				double entry = lastSwingHigh.getValue();
 				double sl = lastSwingLow.getValue();
 				double tp = (2.0f * lastSwingHigh.getValue()) - lastSwingLow.getValue();
 				
-				this.study.debug(String.format("BUY @ %.5f", lastSwingHigh.getValue()));
+				double SLDistance = entry - sl;
+				double minSLDistance = Util.min(series.getInstrument().getTickSize() * 10, series.getInstrument().getSpread() * 5);
+				if (SLDistance < minSLDistance) {
+					this.study.debug(String.format("SL too close: %.5f (min is %.5f)", SLDistance, minSLDistance));
+					return;
+				}
+				
+				this.study.debug(String.format("BUY @ %.5f", entry));
 				this.study.debug(String.format("SL @ %.5f", sl));
 				this.study.debug(String.format("TP @ %.5f", tp));
 				
-				this.placeBuyOrder((float)lastSwingHigh.getValue(), (float)sl, (float)tp);
+				this.placeBuyOrder((float)entry, (float)sl, (float)tp);
 				
 				//stopPrice = (float)lastSwingHigh.getValue();
 				//stopLossPrice = (float)lastSwingLow.getValue();
@@ -101,14 +110,22 @@ public class OrderManager {
 			}
 		} else if (this.study.trendManager.currentTrend == "down") {
 			if (lastSwingLow != null) {
+				double entry = lastSwingLow.getValue();
 				double sl = lastSwingHigh.getValue();
 				double tp = (2.0f * lastSwingLow.getValue()) - lastSwingHigh.getValue();
 				
-				this.study.debug(String.format("SELL @ %.5f", lastSwingLow.getValue()));
+				double SLDistance = sl - entry;
+				double minSLDistance = Util.min(series.getInstrument().getTickSize() * 10, series.getInstrument().getSpread() * 5);
+				if (SLDistance < minSLDistance) {
+					this.study.debug(String.format("SL too close: %.5f (min is %.5f)", SLDistance, minSLDistance));
+					return;
+				}
+				
+				this.study.debug(String.format("SELL @ %.5f", entry));
 				this.study.debug(String.format("SL @ %.5f", sl));
 				this.study.debug(String.format("TP @ %.5f", tp));
 				
-				this.placeSellOrder((float)lastSwingLow.getValue(), (float)sl, (float)tp);
+				this.placeSellOrder((float)entry, (float)sl, (float)tp);
 				
 				//stopPrice = (float)lastSwingLow.getValue();
 				//stopLossPrice = (float)lastSwingHigh.getValue();
@@ -121,12 +138,16 @@ public class OrderManager {
 	
 	protected void placeOrderAtMarket(boolean exit) {
 		if (exit) {
+			this.study.debug("Exit Order filled");
+			
 			if (this.currentOrder.isBuy()) {
 				this.sellAtMarket();
 			} else if (this.currentOrder.isSell()) {
 				this.buyAtMarket();
 			}
 		} else {
+			this.study.debug("Entry Order filled");
+			
 			if (this.currentOrder.isBuy()) {
 				this.buyAtMarket();
 			} else if (this.currentOrder.isSell()) {
