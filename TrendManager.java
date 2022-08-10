@@ -2,6 +2,7 @@ package ricardo_franco;
 
 import com.motivewave.platform.sdk.common.DataSeries;
 import com.motivewave.platform.sdk.common.SwingPoint;
+import com.motivewave.platform.sdk.common.Util;
 
 
 public class TrendManager {
@@ -11,7 +12,8 @@ public class TrendManager {
 	int wave2Index;
 	String currentTrend;
 	
-	double retraction;
+	double currentRetraction;
+	double maxRetraction;
 	double retraction50;
 	double retraction618;
 	boolean validRetraction;
@@ -25,7 +27,8 @@ public class TrendManager {
 		this.wave2Index = 0;
 		this.currentTrend = null;
 		
-		this.retraction = 0;
+		this.currentRetraction = 0;
+		this.maxRetraction = 0;
 		this.retraction50 = 0;
 		this.retraction618 = 0;
 		this.validRetraction = false;
@@ -88,11 +91,7 @@ public class TrendManager {
 								
 								currentTrend = "down";
 								if (!ltfTrend) {
-									onWave2 = true;
-									wave2Index = swing.getIndex();
-									reachedZone = false;
-									invalidatedZone = false;
-									//debug(String.format("Wave 2 confirmed on index #%d", wave2Index));
+									this.confirmWave2(swing);
 								}
 							}
 						}
@@ -118,11 +117,7 @@ public class TrendManager {
 								
 								currentTrend = "up";
 								if (!ltfTrend) {
-									onWave2 = true;
-									wave2Index = swing.getIndex();
-									reachedZone = false;
-									invalidatedZone = false;
-									//debug(String.format("Wave 2 confirmed on index #%d", wave2Index));
+									this.confirmWave2(swing);
 								}
 							}
 						}
@@ -138,13 +133,12 @@ public class TrendManager {
 	}
 	
 	protected void computeRetraction(DataSeries series) {
-		validRetraction = false;
+		this.validRetraction = false;
 		
-		//debug(String.format("On Wave 2? %b", onWave2));
-		if (!onWave2) return;
+		if (!this.onWave2) return;
 		
 		if (this.study.swingManager.swingsTTFKeys.size() < 2) {
-			//debug("Not enough swing points to compute correction");
+			this.study.debug("Not enough swing points to compute retraction");
 			return;
 		}
 		
@@ -162,32 +156,58 @@ public class TrendManager {
 		}
 		
 		if (swing1 == null || swing2 == null) {
-			//debug("Not enough swing points to compute correction");
+			this.study.debug("Not enough swing points to compute retraction");
 			return;
 		}
 		
-		validRetraction = true;
+		this.validRetraction = true;
 		
 		if (swing2.isTop()) {
 			double diff = swing2.getValue() - swing1.getValue();
 			
-			retraction50 = diff * 0.5f + swing1.getValue();
-			retraction618 = diff * 0.618f + swing1.getValue();
-			retraction = (swing2.getValue() - series.getClose()) * 100.0f / diff;
+			this.retraction50 = diff * 0.5f + swing1.getValue();
+			this.retraction618 = diff * 0.618f + swing1.getValue();
+			this.currentRetraction = (swing2.getValue() - series.getClose()) * 100.0f / diff;
+			
+			double lowestSwing = 9999.0f;
+			for (SwingPoint swing : this.study.swingManager.swingsLTF) {
+				if (swing.getIndex() <= swing2Index) continue;
+				
+				lowestSwing = Util.min(lowestSwing, swing.getValue());
+			}
+			this.maxRetraction = (swing2.getValue() - lowestSwing) * 100.0f / diff;
 		} else {
 			double diff = swing1.getValue() - swing2.getValue();
 			
-			retraction50 = diff * 0.5f + swing2.getValue();
-			retraction618 = diff * 0.618f + swing2.getValue();
-			retraction = (series.getClose() - swing2.getValue()) * 100.0f / diff;
+			this.retraction50 = diff * 0.5f + swing2.getValue();
+			this.retraction618 = diff * 0.618f + swing2.getValue();
+			this.currentRetraction = (series.getClose() - swing2.getValue()) * 100.0f / diff;
+			
+			double highestSwing = 0;
+			for (SwingPoint swing : this.study.swingManager.swingsLTF) {
+				if (swing.getIndex() <= swing2Index) continue;
+				
+				highestSwing = Util.max(highestSwing, swing.getValue());
+			}
+			this.maxRetraction = (swing2.getValue() - highestSwing) * 100.0f / diff;
 		}
 		
-		/*debug(String.format("Swing 2 is Top? %b", swing2.isTop()));
-		debug(String.format("Close: %.5f", series.getClose()));
-		debug(String.format("Swing 1: %.5f", swing1.getValue()));
-		debug(String.format("Swing 2: %.5f", swing2.getValue()));
-		debug(String.format("Retraction: %.2f%%", retraction));
-		debug(String.format("Retraction 50%%: %.5f", retraction50));
-		debug(String.format("Retraction 61.8%%: %.5f", retraction618));*/
+		this.study.debug(String.format("Swing 2 is Top? %b", swing2.isTop()));
+		this.study.debug(String.format("Close: %.5f", series.getClose()));
+		this.study.debug(String.format("Swing 1: %.5f", swing1.getValue()));
+		this.study.debug(String.format("Swing 2: %.5f", swing2.getValue()));
+		this.study.debug(String.format("Retraction: %.2f%%", this.currentRetraction));
+		this.study.debug(String.format("Max Retraction: %.2f%%", this.maxRetraction));
+		this.study.debug(String.format("Retraction 50%%: %.5f", this.retraction50));
+		this.study.debug(String.format("Retraction 61.8%%: %.5f", this.retraction618));
+	}
+	
+	protected void confirmWave2(SwingPoint swing) {
+		this.onWave2 = true;
+		this.wave2Index = swing.getIndex();
+		this.reachedZone = false;
+		this.invalidatedZone = false;
+		
+		// this.study.debug(String.format("Wave 2 confirmed on index #%d", this.wave2Index));
 	}
 }
