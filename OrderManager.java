@@ -92,7 +92,7 @@ public class OrderManager {
 				double tp = (2.0f * lastSwingHigh.getValue()) - lastSwingLow.getValue();
 				
 				double SLDistance = entry - sl;
-				double minSLDistance = Util.max(series.getInstrument().getTickSize() * 100, series.getInstrument().getSpread() * 5);
+				double minSLDistance = this.getMinSLDistance(series);
 				if (SLDistance < minSLDistance) {
 					this.study.debug(String.format("SL too close: %.5f (min is %.5f)", SLDistance, minSLDistance));
 					return;
@@ -117,7 +117,7 @@ public class OrderManager {
 				double tp = (2.0f * lastSwingLow.getValue()) - lastSwingHigh.getValue();
 				
 				double SLDistance = sl - entry;
-				double minSLDistance = Util.max(series.getInstrument().getTickSize() * 100, series.getInstrument().getSpread() * 5);
+				double minSLDistance = this.getMinSLDistance(series);
 				if (SLDistance < minSLDistance) {
 					this.study.debug(String.format("SL too close: %.5f (min is %.5f)", SLDistance, minSLDistance));
 					return;
@@ -166,6 +166,15 @@ public class OrderManager {
 	protected void sellAtMarket() {
 		this.ctx.sell(this.qty);
 		this.currentOrder.execute();
+	}
+	
+	protected double getMinSLDistance(DataSeries series) {
+		double pointSize = series.getInstrument().getPointSize();
+		this.study.debug(String.format("Tick Size: %.5f", series.getInstrument().getTickSize()));
+		this.study.debug(String.format("Point Size: %.5f", pointSize));
+		this.study.debug(String.format("Spread: %.5f", series.getInstrument().getSpread()));
+		
+		return Util.max(pointSize * 10, pointSize * series.getInstrument().getSpread() * 5.0f);
 	}
 	
 	/*public void openTrade(OrderContext ctx, Enums.OrderAction orderAction) {
