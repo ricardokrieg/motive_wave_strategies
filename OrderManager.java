@@ -14,8 +14,9 @@ public class OrderManager {
 	int qty;
 	OrderObject currentOrder;
 	
-	final float retractionStart = 50.0f;
-	final float retractionEnd = 61.8f;
+	final float retractionStart = 50.0f - 0.0f;
+	final float retractionEnd = 61.8f + 0.0f;
+	final float minEntryRetraction = 40.0f;
 	
 	public OrderManager(FibonacciStrategy study, OrderContext ctx, int tradeLots) {
 		this.study = study;
@@ -70,12 +71,18 @@ public class OrderManager {
 		this.study.debug(String.format("Invalidated Zone? %b", this.study.trendManager.invalidatedZone)); 
 		
 		if (this.study.trendManager.currentRetraction < 0 || !this.study.trendManager.reachedZone || this.study.trendManager.invalidatedZone) {
-			if (this.currentOrder != null) this.study.debug("Cancel pending orders");
-			this.currentOrder = null;
-			return;
+			if (this.currentOrder != null) {
+				this.study.debug("Cancel pending orders");
+				if (this.currentOrder.running) {
+					this.study.debug("Cant cancel: Order is running");
+				} else {
+					this.currentOrder = null;
+					return;
+				}
+			}
 		}
 		
-		this.study.debug("Trade is valid. We can create the Stop Order now.");
+		this.study.debug("Trade is valid. We can create the pending Order now.");
 		
 		SwingPoint lastSwingHigh = null;
 		SwingPoint lastSwingLow = null;
@@ -90,6 +97,12 @@ public class OrderManager {
 				double entry = this.getEntry(series, lastSwingHigh, true);
 				double sl = this.getEntry(series, lastSwingLow, false);
 				double tp = (2.0f * entry) - sl;
+				
+				double retraction = (this.study.trendManager.currentSwing2.getValue() - entry) * 100.0f / this.study.trendManager.currentDiff;
+				if (retraction < this.minEntryRetraction) {
+					this.study.debug(String.format("Retraction too low: %.2f%%", retraction));
+					return;
+				}
 				
 				double SLDistance = entry - sl;
 				double minSLDistance = this.getMinSLDistance(series);
@@ -110,6 +123,12 @@ public class OrderManager {
 				double entry = this.getEntry(series, lastSwingLow, false);
 				double sl = this.getEntry(series, lastSwingHigh, true);
 				double tp = (2.0f * entry) - sl;
+				
+				double retraction = (entry - this.study.trendManager.currentSwing2.getValue()) * 100.0f / this.study.trendManager.currentDiff;
+				if (retraction < this.minEntryRetraction) {
+					this.study.debug(String.format("Retraction too low: %.2f%%", retraction));
+					return;
+				}
 				
 				double SLDistance = sl - entry;
 				double minSLDistance = this.getMinSLDistance(series);

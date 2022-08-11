@@ -12,6 +12,10 @@ public class TrendManager {
 	int wave2Index;
 	String currentTrend;
 	
+	SwingPoint currentSwing1;
+	SwingPoint currentSwing2;
+	double currentDiff;
+	
 	double currentRetraction;
 	double maxRetraction;
 	double retraction50;
@@ -26,6 +30,10 @@ public class TrendManager {
 		this.onWave2 = false;
 		this.wave2Index = 0;
 		this.currentTrend = null;
+		
+		this.currentSwing1 = null;
+		this.currentSwing2 = null;
+		this.currentDiff = 0;
 		
 		this.currentRetraction = 0;
 		this.maxRetraction = 0;
@@ -164,9 +172,12 @@ public class TrendManager {
 		}
 		
 		this.validRetraction = true;
+		this.currentSwing1 = swing1;
+		this.currentSwing2 = swing2;
 		
 		if (swing2.isTop()) {
 			double diff = swing2.getValue() - swing1.getValue();
+			this.currentDiff = diff;
 			
 			this.retraction50 = diff * 0.5f + swing1.getValue();
 			this.retraction618 = diff * 0.618f + swing1.getValue();
@@ -181,6 +192,7 @@ public class TrendManager {
 			this.maxRetraction = (swing2.getValue() - lowestSwing) * 100.0f / diff;
 		} else {
 			double diff = swing1.getValue() - swing2.getValue();
+			this.currentDiff = diff;
 			
 			this.retraction50 = diff * 0.5f + swing2.getValue();
 			this.retraction618 = diff * 0.618f + swing2.getValue();
