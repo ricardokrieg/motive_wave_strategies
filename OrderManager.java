@@ -175,7 +175,8 @@ public class OrderManager {
 	protected double getEntry(DataSeries series, SwingPoint swing, boolean isBuy) {
 		double pointSize = series.getInstrument().getPointSize();
 		double spread = series.getInstrument().getSpread();
-		double diff = (pointSize * spread) + pointSize;
+		//double diff = (pointSize * spread) + pointSize;
+		double diff = pointSize * spread;
 		
 		if (isBuy)
 			return swing.getValue() + diff;
