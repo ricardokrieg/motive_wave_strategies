@@ -9,6 +9,7 @@ import com.motivewave.platform.sdk.common.Defaults;
 import com.motivewave.platform.sdk.common.Enums;
 import com.motivewave.platform.sdk.common.Inputs;
 import com.motivewave.platform.sdk.common.SwingPoint;
+import com.motivewave.platform.sdk.common.Tick;
 import com.motivewave.platform.sdk.common.desc.IntegerDescriptor;
 import com.motivewave.platform.sdk.common.desc.MarkerDescriptor;
 import com.motivewave.platform.sdk.common.desc.PathDescriptor;
