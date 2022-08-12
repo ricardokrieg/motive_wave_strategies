@@ -46,6 +46,8 @@ public class FibonacciStrategy extends Study {
 	enum Values { MA };
 	enum Signals { BUY_STOP, SELL_STOP };
 	
+	final static String SL_PIPS = "SLPips";
+	final static String TP_PIPS = "TPPips";
 	final static String LTF_MARKER = "ltfMarker";
 	final static String TTF_MARKER = "ttfMarker";
 	final static String LTF_LINE = "ltfLine";
@@ -65,6 +67,8 @@ public class FibonacciStrategy extends Study {
 
 	    SettingGroup inputs = new SettingGroup("Inputs");
 	    inputs.addRow(new IntegerDescriptor(Inputs.STRENGTH, "Swing Point Strengh", 2, 2, 9999, 1));
+	    inputs.addRow(new IntegerDescriptor(SL_PIPS, "Stop Loss Pips", 10, 5, 100, 1));
+	    inputs.addRow(new IntegerDescriptor(TP_PIPS, "Take Profit Pips", 10, 5, 100, 1));
 	    tab.addGroup(inputs);
 	    
 	    SettingGroup lines = new SettingGroup("Display");
@@ -104,7 +108,7 @@ public class FibonacciStrategy extends Study {
 	
 	@Override
 	public void onActivate(OrderContext ctx) {
-		this.orderManager = new OrderManager(this, ctx, getSettings().getTradeLots());
+		this.orderManager = new OrderManager(this, ctx, getSettings().getTradeLots(), getSettings().getInteger(SL_PIPS), getSettings().getInteger(TP_PIPS));
 	}
 	
 	public void drawMarkersAndLines() {

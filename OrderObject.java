@@ -1,6 +1,7 @@
 package ricardo_franco;
 
 import com.motivewave.platform.sdk.common.Enums.OrderAction;
+import com.motivewave.platform.sdk.common.Util;
 
 
 public class OrderObject {
@@ -9,6 +10,7 @@ public class OrderObject {
 	float price;
 	float sl;
 	float tp;
+	float SLDistance;
 	boolean running;
 
 	public OrderObject(OrderAction orderAction, float price, float sl, float tp) {
@@ -16,6 +18,12 @@ public class OrderObject {
 		this.price = price;
 		this.sl = sl;
 		this.tp = tp;
+		
+		if (this.isBuy()) {
+			this.SLDistance = this.price - this.sl;			
+		} else {
+			this.SLDistance = this.sl - this.price;
+		}
 		
 		this.running = false;
 	}
@@ -42,5 +50,15 @@ public class OrderObject {
 	
 	public boolean isSell() {
 		return this.orderAction == OrderAction.SELL;
+	}
+	
+	public void trailStop(float price) {
+		if (this.isBuy()) {
+			float newSL = price - this.SLDistance;
+			this.sl = Util.maxFloat(this.sl, newSL);			
+		} else {
+			float newSL = price + this.SLDistance;
+			this.sl = Util.minFloat(this.sl, newSL);
+		}
 	}
 }

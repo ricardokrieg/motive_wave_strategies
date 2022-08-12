@@ -14,15 +14,22 @@ public class OrderManager {
 	int qty;
 	OrderObject currentOrder;
 	
+	int slPips;
+	int tpPips;
+	
 	final float retractionStart = 50.0f - 0.0f;
 	final float retractionEnd = 61.8f + 0.0f;
 	final float minEntryRetraction = 40.0f;
+	final boolean tradingLimitOrders = true;
 	
-	public OrderManager(FibonacciStrategy study, OrderContext ctx, int tradeLots) {
+	public OrderManager(FibonacciStrategy study, OrderContext ctx, int tradeLots, int slPips, int tpPips) {
 		this.study = study;
 		
 		this.ctx = ctx;
 		this.qty = tradeLots * ctx.getInstrument().getDefaultQuantity();
+		
+		this.slPips = slPips;
+		this.tpPips = tpPips;
 		
 		this.currentOrder = null;
 	}
@@ -37,6 +44,10 @@ public class OrderManager {
 		if (this.currentOrder.running) {
 			if (this.currentOrder.isStopLossPrice(price) || this.currentOrder.isTakeProfitPrice(price)) {
 				this.placeOrderAtMarket(true);
+			}
+				
+			if (this.tradingLimitOrders) {
+				this.currentOrder.trailStop(price);
 			}
 		} else {
 			if (this.currentOrder.isEntryPrice(price)) {
@@ -79,10 +90,38 @@ public class OrderManager {
 					this.currentOrder = null;
 					return;
 				}
+			} else {
+				return;
 			}
 		}
 		
 		this.study.debug("Trade is valid. We can create the pending Order now.");
+		
+		if (this.tradingLimitOrders) {
+			if (this.study.trendManager.currentTrend == "up") {
+				double entry = series.getClose();
+				double sl = entry - series.getInstrument().getPointSize() * (float)slPips;
+				double tp = entry + series.getInstrument().getPointSize() * (float)tpPips;
+				
+				this.study.debug(String.format("BUY @ %.5f", entry));
+				this.study.debug(String.format("SL @ %.5f", sl));
+				this.study.debug(String.format("TP @ %.5f", tp));
+				
+				this.placeBuyOrder((float)entry, (float)sl, (float)tp);
+			} else if (this.study.trendManager.currentTrend == "down") {
+				double entry = series.getClose();
+				double sl = entry + series.getInstrument().getPointSize() * (float)slPips;
+				double tp = entry - series.getInstrument().getPointSize() * (float)tpPips;
+				
+				this.study.debug(String.format("SELL @ %.5f", entry));
+				this.study.debug(String.format("SL @ %.5f", sl));
+				this.study.debug(String.format("TP @ %.5f", tp));
+				
+				this.placeSellOrder((float)entry, (float)sl, (float)tp);
+			}
+			
+			return;
+		}
 		
 		SwingPoint lastSwingHigh = null;
 		SwingPoint lastSwingLow = null;
