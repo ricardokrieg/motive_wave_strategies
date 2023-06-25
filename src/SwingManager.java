@@ -13,12 +13,16 @@ import com.motivewave.platform.sdk.common.SwingPoint;
 
 
 public class SwingManager {
+	FibonacciStrategy study;
+
 	int strength;
 	
 	List<SwingPoint> swingsLTF;
 	List<Integer> swingsTTFKeys;
 	
-	public SwingManager(int strength) {
+	public SwingManager(FibonacciStrategy study, int strength) {
+		this.study = study;
+
 		this.strength = strength;
 		
 		this.swingsLTF = new ArrayList<SwingPoint>();

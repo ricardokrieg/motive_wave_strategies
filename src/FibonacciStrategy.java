@@ -44,20 +44,21 @@ import com.motivewave.platform.sdk.study.StudyHeader;
  supportsTotalPL = true)
 public class FibonacciStrategy extends Study {
 	enum Values { MA };
-	enum Signals { BUY_STOP, SELL_STOP };
+	//enum Signals { BUY_STOP, SELL_STOP };
 	
-	final static String SL_PIPS = "SLPips";
-	final static String TP_PIPS = "TPPips";
+	//final static String SL_PIPS = "SLPips";
+	//final static String TP_PIPS = "TPPips";
 	final static String LTF_MARKER = "ltfMarker";
 	final static String TTF_MARKER = "ttfMarker";
 	final static String LTF_LINE = "ltfLine";
 	final static String TTF_LINE = "ttfLine";
-	
-	GraphicManager graphicManager;
-	OrderManager orderManager;
-	SwingManager swingManager;
+
+    SwingManager swingManager;
 	TrendManager trendManager;
-	
+	GraphicManager graphicManager;
+	//OrderManager orderManager;
+
+
 	public void initialize(Defaults defaults) {
 	    SettingsDescriptor sd = new SettingsDescriptor();
 	    setSettingsDescriptor(sd);
@@ -67,8 +68,8 @@ public class FibonacciStrategy extends Study {
 
 	    SettingGroup inputs = new SettingGroup("Inputs");
 	    inputs.addRow(new IntegerDescriptor(Inputs.STRENGTH, "Swing Point Strengh", 2, 2, 9999, 1));
-	    inputs.addRow(new IntegerDescriptor(SL_PIPS, "Stop Loss Pips", 10, 5, 100, 1));
-	    inputs.addRow(new IntegerDescriptor(TP_PIPS, "Take Profit Pips", 10, 5, 100, 1));
+	    //inputs.addRow(new IntegerDescriptor(SL_PIPS, "Stop Loss Pips", 10, 5, 100, 1));
+	    //inputs.addRow(new IntegerDescriptor(TP_PIPS, "Take Profit Pips", 10, 5, 100, 1));
 	    tab.addGroup(inputs);
 	    
 	    SettingGroup lines = new SettingGroup("Display");
@@ -83,15 +84,15 @@ public class FibonacciStrategy extends Study {
 	    
 	    tab.addGroup(lines);
 	    
-	    RuntimeDescriptor desc = new RuntimeDescriptor();
-	    setRuntimeDescriptor(desc);
+	    //RuntimeDescriptor desc = new RuntimeDescriptor();
+	    //setRuntimeDescriptor(desc);
 
-	    desc.exportValue(new ValueDescriptor(Signals.BUY_STOP, Enums.ValueType.BOOLEAN, "Buy Signal", null));
-	    desc.exportValue(new ValueDescriptor(Signals.SELL_STOP, Enums.ValueType.BOOLEAN, "Sell Signal", null));
+	    //desc.exportValue(new ValueDescriptor(Signals.BUY_STOP, Enums.ValueType.BOOLEAN, "Buy Signal", null));
+	    //desc.exportValue(new ValueDescriptor(Signals.SELL_STOP, Enums.ValueType.BOOLEAN, "Sell Signal", null));
 
 	    // Signals
-	    desc.declareSignal(Signals.BUY_STOP, "Buy Signal");
-	    desc.declareSignal(Signals.SELL_STOP, "Sell Signal");
+	    //desc.declareSignal(Signals.BUY_STOP, "Buy Signal");
+	    //desc.declareSignal(Signals.SELL_STOP, "Sell Signal");
 	}
 	
 	@Override
@@ -101,14 +102,14 @@ public class FibonacciStrategy extends Study {
 				getSettings().getMarker(TTF_MARKER),
 				getSettings().getPath(LTF_LINE),
 				getSettings().getPath(TTF_LINE));
-		
-		this.swingManager = new SwingManager(getSettings().getInteger(Inputs.STRENGTH));
-		this.trendManager = new TrendManager(this);
+
+        this.trendManager = new TrendManager(this);
+		this.swingManager = new SwingManager(this, getSettings().getInteger(Inputs.STRENGTH));
 	}
 	
 	@Override
 	public void onActivate(OrderContext ctx) {
-		this.orderManager = new OrderManager(this, ctx, getSettings().getTradeLots(), getSettings().getInteger(SL_PIPS), getSettings().getInteger(TP_PIPS));
+		//this.orderManager = new OrderManager(this, ctx, getSettings().getTradeLots(), getSettings().getInteger(SL_PIPS), getSettings().getInteger(TP_PIPS));
 	}
 	
 	public void drawMarkersAndLines() {
@@ -119,7 +120,7 @@ public class FibonacciStrategy extends Study {
 		for (Marker marker : this.graphicManager.getLTFMarkers(this.swingManager.swingsLTF)) {
 			if (marker != null) addFigure(marker);
 		}
-		
+
 		List<SwingPoint> swings = new ArrayList<SwingPoint>();
 		for (SwingPoint swing : this.swingManager.swingsLTF) {
 			if (!this.swingManager.swingsTTFKeys.contains(swing.getIndex())) continue;
@@ -152,7 +153,7 @@ public class FibonacciStrategy extends Study {
 		
 		drawMarkersAndLines();
 		
-		this.orderManager.update(series, series.getClose());
+		//this.orderManager.update(series, series.getClose());
 
 		super.onBarClose(ctx);
 	}
