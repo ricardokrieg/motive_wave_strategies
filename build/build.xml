@@ -16,7 +16,7 @@
     <property name="bin.dir" value="../bin/"/>
     <property name="lib.dir" value="../lib/"/>
     <!-- Name of the jar file (created in the 'jar' target) -->
-    <property name="jar.name" value="examples"/>
+    <property name="jar.name" value="ricardofranco_FibonacciStrategy"/>
 
     <!-- This alternative deployment task, copies all class and properties files
          to the extensions directory (instead of creating the jar file). -->
