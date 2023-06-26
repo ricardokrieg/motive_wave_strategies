@@ -6,8 +6,9 @@ import com.motivewave.platform.sdk.common.Util;
 
 
 public class TrendManager {
+    enum TimeFrames { LTF, TTF, HTF };
+
     FibonacciStrategy study;
-    SwingManager swingManager;
 
     boolean onWave2;
     int wave2Index;
@@ -25,9 +26,8 @@ public class TrendManager {
     boolean reachedZone;
     boolean invalidatedZone;
 
-    public TrendManager(FibonacciStrategy study, SwingManager swingManager) {
+    public TrendManager(FibonacciStrategy study) {
         this.study = study;
-        this.swingManager = swingManager;
 
         this.onWave2 = false;
         this.wave2Index = 0;
@@ -47,14 +47,16 @@ public class TrendManager {
     }
 
     public void update(DataSeries series) {
-        this.computeTrend();
-        //this.computeRetraction(series);
+        this.computeTrend(TimeFrames.LTF);
+        this.computeTrend(TimeFrames.TTF);
+
+        this.computeRetraction(series);
     }
 
     //----------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------------------------------------
 
-    protected void computeTrend() {
+    protected void computeTrend(TimeFrames timeFrame) {
         currentTrend = null;
 
         SwingPoint lastSwingHigh = null;
@@ -64,12 +66,12 @@ public class TrendManager {
         SwingPoint leadingSwingHigh = null;
         SwingPoint leadingSwingLow = null;
 
-        for (SwingPoint swing : this.swingManager.swings) {
-            /*if (timeFrame == TimeFrames.TTF) {
+        for (SwingPoint swing : this.study.swingManager.swingsLTF) {
+            if (timeFrame == TimeFrames.TTF) {
                 if (!this.study.swingManager.swingsTTFKeys.contains(swing.getIndex())) continue;
 
                 onWave2 = false;
-            }*/
+            }
 
             if (currentTrend == null) {
                 if (swing.isTop()) {
@@ -87,18 +89,20 @@ public class TrendManager {
                     } else {
                         if (leadingSwingLow != null) {
                             if (swing.getValue() < leadingSwingLow.getValue()) {
-                                /*if (timeFrame == TimeFrames.LTF) {
+                                if (timeFrame == TimeFrames.LTF) {
                                     if (highestSwingHigh != null) {
                                         this.study.swingManager.swingsTTFKeys.add(highestSwingHigh.getIndex());
                                     }
-                                }*/
+                                }
 
                                 lowestSwingLow = swing;
                                 leadingSwingLow = null;
                                 leadingSwingHigh = lastSwingHigh;
 
                                 currentTrend = "down";
-                                this.confirmWave2(swing);
+                                if (timeFrame == TimeFrames.TTF) {
+                                    this.confirmWave2(swing);
+                                }
                             }
                         }
                     }
@@ -111,25 +115,27 @@ public class TrendManager {
                     } else {
                         if (leadingSwingHigh != null) {
                             if (swing.getValue() > leadingSwingHigh.getValue()) {
-                                /*if (timeFrame == TimeFrames.LTF) {
+                                if (timeFrame == TimeFrames.LTF) {
                                     if (lowestSwingLow != null) {
                                         this.study.swingManager.swingsTTFKeys.add(lowestSwingLow.getIndex());
                                     }
-                                }*/
+                                }
 
                                 highestSwingHigh = swing;
                                 leadingSwingHigh = null;
                                 leadingSwingLow = lastSwingLow;
 
                                 currentTrend = "up";
-                                this.confirmWave2(swing);
+                                if (timeFrame == TimeFrames.TTF) {
+                                    this.confirmWave2(swing);
+                                }
                             }
                         }
                     }
                 }
 
                 // TODO trading all swings
-                this.checkWave(swing, lastSwingLow, lastSwingHigh);
+                this.checkWave(timeFrame, swing, lastSwingLow, lastSwingHigh);
             }
 
             if (swing.isTop())
@@ -138,27 +144,30 @@ public class TrendManager {
                 lastSwingLow = swing;
         }
 
-        this.study.debug("Current Trend: " + currentTrend);
+        if (timeFrame == TimeFrames.LTF) {
+            this.study.debug("Current LTF Trend: " + currentTrend);
+        } else if (timeFrame == TimeFrames.TTF) {
+            this.study.debug("Current TTF Trend: " + currentTrend);
+        }
     }
 
-    /*
     protected void computeRetraction(DataSeries series) {
         this.validRetraction = false;
 
         if (!this.onWave2) return;
 
-        if (this.swingManager.swingsTTFKeys.size() < 2) {
+        if (this.study.swingManager.swingsTTFKeys.size() < 2) {
             this.study.debug("Not enough swing points to compute retraction");
             return;
         }
 
-        int swing1Index = this.swingManager.swingsTTFKeys.get(this.swingManager.swingsTTFKeys.size() - 2);
-        int swing2Index = this.swingManager.swingsTTFKeys.get(this.swingManager.swingsTTFKeys.size() - 1);
+        int swing1Index = this.study.swingManager.swingsTTFKeys.get(this.study.swingManager.swingsTTFKeys.size() - 2);
+        int swing2Index = this.study.swingManager.swingsTTFKeys.get(this.study.swingManager.swingsTTFKeys.size() - 1);
 
         SwingPoint swing1 = null;
         SwingPoint swing2 = null;
 
-        for (SwingPoint swing : this.swingManager.swings) {
+        for (SwingPoint swing : this.study.swingManager.swingsLTF) {
             if (swing.getIndex() == swing1Index) swing1 = swing;
             if (swing.getIndex() == swing2Index) swing2 = swing;
 
@@ -183,7 +192,7 @@ public class TrendManager {
             this.currentRetraction = (swing2.getValue() - series.getClose()) * 100.0f / diff;
 
             double lowestSwing = 9999.0f;
-            for (SwingPoint swing : this.swingManager.swings) {
+            for (SwingPoint swing : this.study.swingManager.swingsLTF) {
                 if (swing.getIndex() <= swing2Index) continue;
 
                 lowestSwing = Util.min(lowestSwing, swing.getValue());
@@ -198,7 +207,7 @@ public class TrendManager {
             this.currentRetraction = (series.getClose() - swing2.getValue()) * 100.0f / diff;
 
             double highestSwing = 0;
-            for (SwingPoint swing : this.swingManager.swings) {
+            for (SwingPoint swing : this.study.swingManager.swingsLTF) {
                 if (swing.getIndex() <= swing2Index) continue;
 
                 highestSwing = Util.max(highestSwing, swing.getValue());
@@ -215,7 +224,6 @@ public class TrendManager {
         //this.study.debug(String.format("Retraction 50%%: %.5f", this.retraction50));
         //this.study.debug(String.format("Retraction 61.8%%: %.5f", this.retraction618));
     }
-    */
 
     protected void confirmWave2(SwingPoint swing) {
         this.onWave2 = true;
@@ -226,7 +234,9 @@ public class TrendManager {
         // this.study.debug(String.format("Wave 2 confirmed on index #%d", this.wave2Index));
     }
 
-    protected void checkWave(SwingPoint swing, SwingPoint lastSwingLow, SwingPoint lastSwingHigh) {
+    protected void checkWave(TimeFrames timeFrame, SwingPoint swing, SwingPoint lastSwingLow, SwingPoint lastSwingHigh) {
+        if (timeFrame == TimeFrames.LTF) return;
+
         if (swing.isTop()) {
             if (lastSwingHigh == null) return;
 

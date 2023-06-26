@@ -48,14 +48,20 @@ public class FibonacciStrategy extends Study {
 	
 	//final static String SL_PIPS = "SLPips";
 	//final static String TP_PIPS = "TPPips";
-	final static String LTF_MARKER = "ltfMarker";
-	final static String TTF_MARKER = "ttfMarker";
-	final static String HTF_MARKER = "htfMarker";
-	final static String LTF_LINE = "ltfLine";
-	final static String TTF_LINE = "ttfLine";
-	final static String HTF_LINE = "htfLine";
+    final static String LTF_STRENGTH = "ltfStrength";
+    final static String TTF_STRENGTH = "ttfStrength";
+    final static String HTF_STRENGTH = "htfStrength";
+    final static String LTF_MARKER = "ltfMarker";
+    final static String TTF_MARKER = "ttfMarker";
+    final static String HTF_MARKER = "htfMarker";
+    final static String LTF_LINE = "ltfLine";
+    final static String TTF_LINE = "ttfLine";
+    final static String HTF_LINE = "htfLine";
 
-    SwingManager swingManager;
+    SwingManager ltfSwingManager;
+    SwingManager ttfSwingManager;
+    SwingManager htfSwingManager;
+
 	TrendManager trendManager;
 	GraphicManager graphicManager;
 	//OrderManager orderManager;
@@ -69,7 +75,9 @@ public class FibonacciStrategy extends Study {
 	    sd.addTab(tab);
 
 	    SettingGroup inputs = new SettingGroup("Inputs");
-	    inputs.addRow(new IntegerDescriptor(Inputs.STRENGTH, "Swing Point Strengh", 2, 2, 9999, 1));
+	    inputs.addRow(new IntegerDescriptor(LTF_STRENGTH, "LTF Swing Point Strength", 2, 2, 9999, 1));
+        inputs.addRow(new IntegerDescriptor(TTF_STRENGTH, "TTF Swing Point Strength", 10, 2, 9999, 1));
+        inputs.addRow(new IntegerDescriptor(HTF_STRENGTH, "HTF Swing Point Strength", 50, 2, 9999, 1));
 	    //inputs.addRow(new IntegerDescriptor(SL_PIPS, "Stop Loss Pips", 10, 5, 100, 1));
 	    //inputs.addRow(new IntegerDescriptor(TP_PIPS, "Take Profit Pips", 10, 5, 100, 1));
 	    tab.addGroup(inputs);
@@ -111,8 +119,11 @@ public class FibonacciStrategy extends Study {
 				getSettings().getPath(TTF_LINE),
 				getSettings().getPath(HTF_LINE));
 
-        this.trendManager = new TrendManager(this);
-		this.swingManager = new SwingManager(this, getSettings().getInteger(Inputs.STRENGTH));
+		this.ltfSwingManager = new SwingManager(this, getSettings().getInteger(LTF_STRENGTH));
+        this.ttfSwingManager = new SwingManager(this, getSettings().getInteger(TTF_STRENGTH));
+        this.htfSwingManager = new SwingManager(this, getSettings().getInteger(HTF_STRENGTH));
+
+        this.trendManager = new TrendManager(this, ttfSwingManager);
 	}
 	
 	@Override
@@ -121,49 +132,32 @@ public class FibonacciStrategy extends Study {
 	}
 	
 	public void drawMarkersAndLines() {
-		for (Line line : this.graphicManager.getLTFLines(this.swingManager.swingsLTF)) {
+		for (Line line : this.graphicManager.getLTFLines(this.ltfSwingManager.swings)) {
 			if (line != null) addFigure(line);
 		}
-		
-		for (Marker marker : this.graphicManager.getLTFMarkers(this.swingManager.swingsLTF)) {
+		for (Marker marker : this.graphicManager.getLTFMarkers(this.ltfSwingManager.swings)) {
 			if (marker != null) addFigure(marker);
 		}
 
-		// Drawing TTF
-		List<SwingPoint> swings = new ArrayList<SwingPoint>();
-		for (SwingPoint swing : this.swingManager.swingsLTF) {
-			if (!this.swingManager.swingsTTFKeys.contains(swing.getIndex())) continue;
-			
-			swings.add(swing);
-		}
-		
-		for (Marker marker : this.graphicManager.getTTFMarkers(swings)) {
-			if (marker != null) addFigure(marker);
-		}
-		
-		for (Line line : this.graphicManager.getTTFLines(swings)) {
-			if (line != null) addFigure(line);
-		}
+        for (Line line : this.graphicManager.getTTFLines(this.ttfSwingManager.swings)) {
+            if (line != null) addFigure(line);
+        }
+        for (Marker marker : this.graphicManager.getTTFMarkers(this.ttfSwingManager.swings)) {
+            if (marker != null) addFigure(marker);
+        }
 
-		// Drawing HTF
-		swings = new ArrayList<SwingPoint>();
-		for (SwingPoint swing : this.swingManager.swingsLTF) {
-			if (!this.swingManager.swingsHTFKeys.contains(swing.getIndex())) continue;
-
-			swings.add(swing);
-		}
-
-		for (Marker marker : this.graphicManager.getHTFMarkers(swings)) {
-			if (marker != null) addFigure(marker);
-		}
-
-		for (Line line : this.graphicManager.getHTFLines(swings)) {
-			if (line != null) addFigure(line);
-		}
+        for (Line line : this.graphicManager.getHTFLines(this.htfSwingManager.swings)) {
+            if (line != null) addFigure(line);
+        }
+        for (Marker marker : this.graphicManager.getHTFMarkers(this.htfSwingManager.swings)) {
+            if (marker != null) addFigure(marker);
+        }
 	}
 	
 	public void clear() {
-		this.swingManager.clear();
+		this.ltfSwingManager.clear();
+        this.ttfSwingManager.clear();
+        this.htfSwingManager.clear();
 		clearFigures();
 	}
 	
@@ -173,7 +167,9 @@ public class FibonacciStrategy extends Study {
 		
 		DataSeries series = ctx.getDataSeries();
 		
-		this.swingManager.update(series);
+		this.ltfSwingManager.update(series);
+        this.ttfSwingManager.update(series);
+        this.htfSwingManager.update(series);
 		this.trendManager.update(series);
 		
 		drawMarkersAndLines();

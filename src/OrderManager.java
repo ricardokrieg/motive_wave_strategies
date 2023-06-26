@@ -7,6 +7,7 @@ import com.motivewave.platform.sdk.common.Enums.OrderAction;
 import com.motivewave.platform.sdk.order_mgmt.OrderContext;
 
 
+/*
 public class OrderManager {
     FibonacciStrategy study;
 
@@ -239,3 +240,4 @@ public class OrderManager {
         return Util.max(pointSize * 10, pointSize * series.getInstrument().getSpread() * 5.0f);
     }
 }
+*/

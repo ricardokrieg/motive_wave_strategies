@@ -17,26 +17,32 @@ public class SwingManager {
 
 	int strength;
 	
-	List<SwingPoint> swings;
-
+	List<SwingPoint> swingsLTF;
+	List<Integer> swingsTTFKeys;
+	List<Integer> swingsHTFKeys;
+	
 	public SwingManager(FibonacciStrategy study, int strength) {
 		this.study = study;
 
 		this.strength = strength;
 		
-		this.swings = new ArrayList<SwingPoint>();
+		this.swingsLTF = new ArrayList<SwingPoint>();
+		this.swingsTTFKeys = new ArrayList<Integer>();
+        this.swingsHTFKeys = new ArrayList<Integer>();
 	}
 	
 	public void update(DataSeries series) {
 		List<SwingPoint> swingsHigh = this.computeSwings(series, true);
 		List<SwingPoint> swingsLow = this.computeSwings(series, false);
-
-		this.swings = mergeSwings(swingsHigh, swingsLow);
-		this.swings = deleteNeighborSwings(this.swings);
+		
+		this.swingsLTF = mergeSwings(swingsHigh, swingsLow);
+		this.swingsLTF = deleteNeighborSwings(this.swingsLTF);
 	}
 	
 	public void clear() {
-		this.swings.clear();
+		this.swingsLTF.clear();
+		this.swingsTTFKeys.clear();
+        this.swingsHTFKeys.clear();
 	}
 	
 	//----------------------------------------------------------------------------------------------------------
