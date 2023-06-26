@@ -8,7 +8,7 @@
   This script also has the ability to create a jar file for the studies/strategies
   in this project.  The jar file makes it easier to distribute your studies/strategies
 -->
-<project default="deploy_jar">
+<project default="deploy">
     <!-- user.home is C:\Documents and Settings\<user name> or C:\Users\<user name> (Windows) or /Users/<user name> (Mac OSX) -->
     <property name="ext.dir" value="../MotiveWave Extensions"/>
     <property name="dev.dir" value="${ext.dir}/dev"/>

@@ -50,8 +50,10 @@ public class FibonacciStrategy extends Study {
 	//final static String TP_PIPS = "TPPips";
 	final static String LTF_MARKER = "ltfMarker";
 	final static String TTF_MARKER = "ttfMarker";
+	final static String HTF_MARKER = "htfMarker";
 	final static String LTF_LINE = "ltfLine";
 	final static String TTF_LINE = "ttfLine";
+	final static String HTF_LINE = "htfLine";
 
     SwingManager swingManager;
 	TrendManager trendManager;
@@ -81,6 +83,10 @@ public class FibonacciStrategy extends Study {
 	    lines.addRow(new PathDescriptor(TTF_LINE, "TTF Line", defaults.getRed(), 2.0f, null, true, true, true));
 	    lines.addRow(new MarkerDescriptor(TTF_MARKER, "TTF Marker", 
 	            Enums.MarkerType.CIRCLE, Enums.Size.MEDIUM, defaults.getRed(), defaults.getLineColor(), true, true));
+
+		lines.addRow(new PathDescriptor(HTF_LINE, "HTF Line", defaults.getGrey(), 4.0f, null, true, true, true));
+		lines.addRow(new MarkerDescriptor(HTF_MARKER, "HTF Marker",
+				Enums.MarkerType.CIRCLE, Enums.Size.LARGE, defaults.getGrey(), defaults.getLineColor(), true, true));
 	    
 	    tab.addGroup(lines);
 	    
@@ -100,8 +106,10 @@ public class FibonacciStrategy extends Study {
 		this.graphicManager = new GraphicManager(
 				getSettings().getMarker(LTF_MARKER),
 				getSettings().getMarker(TTF_MARKER),
+				getSettings().getMarker(HTF_MARKER),
 				getSettings().getPath(LTF_LINE),
-				getSettings().getPath(TTF_LINE));
+				getSettings().getPath(TTF_LINE),
+				getSettings().getPath(HTF_LINE));
 
         this.trendManager = new TrendManager(this);
 		this.swingManager = new SwingManager(this, getSettings().getInteger(Inputs.STRENGTH));
@@ -121,6 +129,7 @@ public class FibonacciStrategy extends Study {
 			if (marker != null) addFigure(marker);
 		}
 
+		// Drawing TTF
 		List<SwingPoint> swings = new ArrayList<SwingPoint>();
 		for (SwingPoint swing : this.swingManager.swingsLTF) {
 			if (!this.swingManager.swingsTTFKeys.contains(swing.getIndex())) continue;
@@ -133,6 +142,22 @@ public class FibonacciStrategy extends Study {
 		}
 		
 		for (Line line : this.graphicManager.getTTFLines(swings)) {
+			if (line != null) addFigure(line);
+		}
+
+		// Drawing HTF
+		swings = new ArrayList<SwingPoint>();
+		for (SwingPoint swing : this.swingManager.swingsLTF) {
+			if (!this.swingManager.swingsHTFKeys.contains(swing.getIndex())) continue;
+
+			swings.add(swing);
+		}
+
+		for (Marker marker : this.graphicManager.getHTFMarkers(swings)) {
+			if (marker != null) addFigure(marker);
+		}
+
+		for (Line line : this.graphicManager.getHTFLines(swings)) {
 			if (line != null) addFigure(line);
 		}
 	}

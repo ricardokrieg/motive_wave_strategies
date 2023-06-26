@@ -140,6 +140,8 @@ public class TrendManager {
                 lastSwingHigh = swing;
             else
                 lastSwingLow = swing;
+
+            this.study.debug("Current Trend: " + currentTrend);
         }
     }
 

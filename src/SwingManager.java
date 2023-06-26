@@ -19,6 +19,7 @@ public class SwingManager {
 	
 	List<SwingPoint> swingsLTF;
 	List<Integer> swingsTTFKeys;
+	List<Integer> swingsHTFKeys;
 	
 	public SwingManager(FibonacciStrategy study, int strength) {
 		this.study = study;
@@ -27,6 +28,7 @@ public class SwingManager {
 		
 		this.swingsLTF = new ArrayList<SwingPoint>();
 		this.swingsTTFKeys = new ArrayList<Integer>();
+        this.swingsHTFKeys = new ArrayList<Integer>();
 	}
 	
 	public void update(DataSeries series) {
@@ -40,6 +42,7 @@ public class SwingManager {
 	public void clear() {
 		this.swingsLTF.clear();
 		this.swingsTTFKeys.clear();
+        this.swingsHTFKeys.clear();
 	}
 	
 	//----------------------------------------------------------------------------------------------------------
