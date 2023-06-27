@@ -57,6 +57,7 @@ public class FibonacciStrategy extends Study {
     final static String LTF_LINE = "ltfLine";
     final static String TTF_LINE = "ttfLine";
     final static String HTF_LINE = "htfLine";
+    final static String CHANGE_OF_TREND_MARKER = "changeOfTrendMarker";
 
     SwingManager ltfSwingManager;
     SwingManager ttfSwingManager;
@@ -95,6 +96,9 @@ public class FibonacciStrategy extends Study {
 		lines.addRow(new PathDescriptor(HTF_LINE, "HTF Line", defaults.getGrey(), 4.0f, null, true, true, true));
 		lines.addRow(new MarkerDescriptor(HTF_MARKER, "HTF Marker",
 				Enums.MarkerType.CIRCLE, Enums.Size.LARGE, defaults.getGrey(), defaults.getLineColor(), true, true));
+
+        lines.addRow(new MarkerDescriptor(CHANGE_OF_TREND_MARKER, "Change Of Trend Marker",
+                Enums.MarkerType.DIAMOND, Enums.Size.LARGE, defaults.getYellow(), defaults.getLineColor(), true, true));
 	    
 	    tab.addGroup(lines);
 	    
@@ -117,7 +121,8 @@ public class FibonacciStrategy extends Study {
 				getSettings().getMarker(HTF_MARKER),
 				getSettings().getPath(LTF_LINE),
 				getSettings().getPath(TTF_LINE),
-				getSettings().getPath(HTF_LINE));
+				getSettings().getPath(HTF_LINE),
+                getSettings().getMarker(CHANGE_OF_TREND_MARKER));
 
 		this.ltfSwingManager = new SwingManager(this, getSettings().getInteger(LTF_STRENGTH));
         this.ttfSwingManager = new SwingManager(this, getSettings().getInteger(TTF_STRENGTH));
@@ -132,13 +137,15 @@ public class FibonacciStrategy extends Study {
 	}
 	
 	public void drawMarkersAndLines() {
-		for (Line line : this.graphicManager.getLTFLines(this.ltfSwingManager.swings)) {
-			if (line != null) addFigure(line);
-		}
-		for (Marker marker : this.graphicManager.getLTFMarkers(this.ltfSwingManager.swings)) {
-			if (marker != null) addFigure(marker);
-		}
+        // HTF
+        for (Line line : this.graphicManager.getHTFLines(this.htfSwingManager.swings)) {
+            if (line != null) addFigure(line);
+        }
+        for (Marker marker : this.graphicManager.getHTFMarkers(this.htfSwingManager.swings)) {
+            if (marker != null) addFigure(marker);
+        }
 
+		// TTF
         for (Line line : this.graphicManager.getTTFLines(this.ttfSwingManager.swings)) {
             if (line != null) addFigure(line);
         }
@@ -146,10 +153,16 @@ public class FibonacciStrategy extends Study {
             if (marker != null) addFigure(marker);
         }
 
-        for (Line line : this.graphicManager.getHTFLines(this.htfSwingManager.swings)) {
+        // LTF
+        for (Line line : this.graphicManager.getLTFLines(this.ltfSwingManager.swings)) {
             if (line != null) addFigure(line);
         }
-        for (Marker marker : this.graphicManager.getHTFMarkers(this.htfSwingManager.swings)) {
+        for (Marker marker : this.graphicManager.getLTFMarkers(this.ltfSwingManager.swings)) {
+            if (marker != null) addFigure(marker);
+        }
+
+        // TTF Changes of Trend
+        for (Marker marker : this.graphicManager.getChangeOfTrendMarkers(this.trendManager.changeOfTrendSwings)) {
             if (marker != null) addFigure(marker);
         }
 	}
@@ -158,6 +171,7 @@ public class FibonacciStrategy extends Study {
 		this.ltfSwingManager.clear();
         this.ttfSwingManager.clear();
         this.htfSwingManager.clear();
+        this.trendManager.clear();
 		clearFigures();
 	}
 	

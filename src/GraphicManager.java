@@ -20,7 +20,9 @@ public class GraphicManager {
     PathInfo ttfLine;
     PathInfo htfLine;
 
-    public GraphicManager(MarkerInfo ltfMarker, MarkerInfo ttfMarker, MarkerInfo htfMarker, PathInfo ltfLine, PathInfo ttfLine, PathInfo htfLine) {
+    MarkerInfo changeOfTrendMarker;
+
+    public GraphicManager(MarkerInfo ltfMarker, MarkerInfo ttfMarker, MarkerInfo htfMarker, PathInfo ltfLine, PathInfo ttfLine, PathInfo htfLine, MarkerInfo changeOfTrendMarker) {
         this.ltfMarker = ltfMarker;
         this.ttfMarker = ttfMarker;
         this.htfMarker = htfMarker;
@@ -28,6 +30,8 @@ public class GraphicManager {
         this.ltfLine = ltfLine;
         this.ttfLine = ttfLine;
         this.htfLine = htfLine;
+
+        this.changeOfTrendMarker = changeOfTrendMarker;
     }
 
     public List<Marker> getLTFMarkers(List<SwingPoint> swings) {
@@ -141,6 +145,20 @@ public class GraphicManager {
         return lines;
     }
 
+    public List<Marker> getChangeOfTrendMarkers(List<SwingPoint> swings) {
+        List<Marker> markers = new ArrayList<Marker>();
+
+        for (SwingPoint swing : swings) {
+            if (swing.isTop()) {
+                markers.add(this.getChangeOfTrendMarker(swing, Enums.Position.TOP));
+            } else {
+                markers.add(this.getChangeOfTrendMarker(swing, Enums.Position.BOTTOM));
+            }
+        }
+
+        return markers;
+    }
+
     //----------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------------------------------------
 
@@ -166,6 +184,10 @@ public class GraphicManager {
 
     protected Line getHTFLine(SwingPoint swing1, SwingPoint swing2) {
         return this.getLine(swing1, swing2, this.htfLine);
+    }
+
+    protected Marker getChangeOfTrendMarker(SwingPoint swing, Enums.Position position) {
+        return this.getMarker(swing, this.changeOfTrendMarker, position);
     }
 
     protected Marker getMarker(SwingPoint swing, MarkerInfo marker, Enums.Position position) {
