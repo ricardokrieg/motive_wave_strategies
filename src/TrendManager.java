@@ -11,10 +11,12 @@ import com.motivewave.platform.sdk.common.Util;
 public class TrendManager {
     FibonacciStrategy study;
     SwingManager swingManager;
+    SwingManager ltfSwingManager;
 
     boolean onWave2;
     int wave2Index;
     String currentTrend;
+    String currentTrendForTrading;
     List<SwingPoint> changeOfTrendSwings;
 
     SwingPoint currentSwing1;
@@ -27,13 +29,15 @@ public class TrendManager {
     double retraction618;
     boolean validRetraction;
 
-    public TrendManager(FibonacciStrategy study, SwingManager swingManager) {
+    public TrendManager(FibonacciStrategy study, SwingManager swingManager, SwingManager ltfSwingManager) {
         this.study = study;
         this.swingManager = swingManager;
+        this.ltfSwingManager = ltfSwingManager;
 
         this.onWave2 = false;
         this.wave2Index = 0;
         this.currentTrend = null;
+        this.currentTrendForTrading = null;
         this.changeOfTrendSwings = new ArrayList<SwingPoint>();
 
         this.currentSwing1 = null;
@@ -61,6 +65,7 @@ public class TrendManager {
 
     protected void computeTrend() {
         currentTrend = null;
+        currentTrendForTrading = null;
         onWave2 = false;
 
         SwingPoint lastSwingHigh = null;
@@ -73,9 +78,9 @@ public class TrendManager {
         for (SwingPoint swing : this.swingManager.swings) {
             if (currentTrend == null) {
                 if (swing.isTop()) {
-                    currentTrend = "down";
+                    currentTrend = currentTrendForTrading = "down";
                 } else {
-                    currentTrend = "up";
+                    currentTrend = currentTrendForTrading = "up";
                 }
             } else {
                 if (currentTrend == "up") {
@@ -93,7 +98,7 @@ public class TrendManager {
                                 leadingSwingLow = null;
                                 leadingSwingHigh = lastSwingHigh;
 
-                                currentTrend = "down";
+                                currentTrend = currentTrendForTrading = "down";
                                 this.confirmWave2(swing);
                                 this.changeOfTrendSwings.add(swing);
                             }
@@ -114,7 +119,7 @@ public class TrendManager {
                                 leadingSwingHigh = null;
                                 leadingSwingLow = lastSwingLow;
 
-                                currentTrend = "up";
+                                currentTrend = currentTrendForTrading = "up";
                                 this.confirmWave2(swing);
                                 this.changeOfTrendSwings.add(swing);
                             }
@@ -130,6 +135,33 @@ public class TrendManager {
                 lastSwingHigh = swing;
             else
                 lastSwingLow = swing;
+        }
+
+        if (currentTrend != null) {
+            for (SwingPoint swing : this.ltfSwingManager.swings) {
+                if (swing.getIndex() > lastSwingHigh.getIndex() && swing.getIndex() > lastSwingLow.getIndex()) {
+                    if (currentTrend == "up") {
+                        if (swing.isBottom()) {
+                            if (leadingSwingLow != null) {
+                                if (swing.getValue() < leadingSwingLow.getValue()) {
+                                    this.currentTrendForTrading = "down";
+                                    this.confirmWave2(swing);
+                                }
+                            }
+                        }
+                    } else if (currentTrend == "down") {
+                        if (swing.isTop()) {
+                            if (leadingSwingHigh != null) {
+                                if (swing.getValue() > leadingSwingHigh.getValue()) {
+                                    this.currentTrendForTrading = "up";
+                                    this.confirmWave2(swing);
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
         }
 
         // this.study.debug("Current Trend: " + currentTrend);
@@ -197,9 +229,10 @@ public class TrendManager {
         this.onWave2 = true;
         this.wave2Index = swing.getIndex();
 
-//        this.study.debug(String.format("Wave 2 confirmed on index #%d", this.wave2Index));
+        // this.study.debug(String.format("Wave 2 confirmed on index #%d", this.wave2Index));
     }
 
+    /*
     protected void checkWave(SwingPoint swing, SwingPoint lastSwingLow, SwingPoint lastSwingHigh) {
         if (swing.isTop()) {
             if (lastSwingHigh == null) return;
@@ -215,4 +248,5 @@ public class TrendManager {
             }
         }
     }
+    */
 }

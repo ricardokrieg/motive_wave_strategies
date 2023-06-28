@@ -128,7 +128,7 @@ public class FibonacciStrategy extends Study {
         this.ttfSwingManager = new SwingManager(this, getSettings().getInteger(TTF_STRENGTH));
         this.htfSwingManager = new SwingManager(this, getSettings().getInteger(HTF_STRENGTH));
 
-        this.trendManager = new TrendManager(this, ttfSwingManager);
+        this.trendManager = new TrendManager(this, ttfSwingManager, ltfSwingManager);
 	}
 	
 	@Override

@@ -83,7 +83,7 @@ public class OrderManager {
             return;
         }
 
-        if (this.trendManager.currentTrend == "up") {
+        if (this.trendManager.currentTrendForTrading == "up") {
             float entry = (float)this.trendManager.retraction50;
             float sl = entry - (float)series.getInstrument().getPointSize() * (float)this.slPips;
             float tp = entry + (float)series.getInstrument().getPointSize() * (float)this.tpPips;
@@ -95,7 +95,7 @@ public class OrderManager {
             this.order = this.ctx.createLimitOrder(OrderAction.BUY, TIF.GTC, this.qty, entry);
             this.orderSLEntry = sl;
             this.orderTPEntry = tp;
-        } else if (this.trendManager.currentTrend == "down") {
+        } else if (this.trendManager.currentTrendForTrading == "down") {
             float entry = (float)this.trendManager.retraction50;
             float sl = entry + (float)series.getInstrument().getPointSize() * (float)this.slPips;
             float tp = entry - (float)series.getInstrument().getPointSize() * (float)this.tpPips;
