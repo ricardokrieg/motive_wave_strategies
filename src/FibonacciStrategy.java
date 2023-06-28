@@ -44,10 +44,10 @@ import com.motivewave.platform.sdk.study.StudyHeader;
  supportsTotalPL = true)
 public class FibonacciStrategy extends Study {
 	enum Values { MA };
-	//enum Signals { BUY_STOP, SELL_STOP };
+	enum Signals { BUY_STOP, SELL_STOP };
 	
-	//final static String SL_PIPS = "SLPips";
-	//final static String TP_PIPS = "TPPips";
+	final static String SL_PIPS = "SLPips";
+	final static String TP_PIPS = "TPPips";
     final static String LTF_STRENGTH = "ltfStrength";
     final static String TTF_STRENGTH = "ttfStrength";
     final static String HTF_STRENGTH = "htfStrength";
@@ -65,7 +65,7 @@ public class FibonacciStrategy extends Study {
 
 	TrendManager trendManager;
 	GraphicManager graphicManager;
-	//OrderManager orderManager;
+	OrderManager orderManager;
 
 
 	public void initialize(Defaults defaults) {
@@ -79,8 +79,8 @@ public class FibonacciStrategy extends Study {
 	    inputs.addRow(new IntegerDescriptor(LTF_STRENGTH, "LTF Swing Point Strength", 2, 2, 9999, 1));
         inputs.addRow(new IntegerDescriptor(TTF_STRENGTH, "TTF Swing Point Strength", 10, 2, 9999, 1));
         inputs.addRow(new IntegerDescriptor(HTF_STRENGTH, "HTF Swing Point Strength", 50, 2, 9999, 1));
-	    //inputs.addRow(new IntegerDescriptor(SL_PIPS, "Stop Loss Pips", 10, 5, 100, 1));
-	    //inputs.addRow(new IntegerDescriptor(TP_PIPS, "Take Profit Pips", 10, 5, 100, 1));
+	    inputs.addRow(new IntegerDescriptor(SL_PIPS, "Stop Loss Pips", 10, 5, 100, 1));
+	    inputs.addRow(new IntegerDescriptor(TP_PIPS, "Take Profit Pips", 10, 5, 100, 1));
 	    tab.addGroup(inputs);
 	    
 	    SettingGroup lines = new SettingGroup("Display");
@@ -102,15 +102,15 @@ public class FibonacciStrategy extends Study {
 	    
 	    tab.addGroup(lines);
 	    
-	    //RuntimeDescriptor desc = new RuntimeDescriptor();
-	    //setRuntimeDescriptor(desc);
+	    RuntimeDescriptor desc = new RuntimeDescriptor();
+	    setRuntimeDescriptor(desc);
 
-	    //desc.exportValue(new ValueDescriptor(Signals.BUY_STOP, Enums.ValueType.BOOLEAN, "Buy Signal", null));
-	    //desc.exportValue(new ValueDescriptor(Signals.SELL_STOP, Enums.ValueType.BOOLEAN, "Sell Signal", null));
+	    desc.exportValue(new ValueDescriptor(Signals.BUY_STOP, Enums.ValueType.BOOLEAN, "Buy Signal", null));
+	    desc.exportValue(new ValueDescriptor(Signals.SELL_STOP, Enums.ValueType.BOOLEAN, "Sell Signal", null));
 
 	    // Signals
-	    //desc.declareSignal(Signals.BUY_STOP, "Buy Signal");
-	    //desc.declareSignal(Signals.SELL_STOP, "Sell Signal");
+	    desc.declareSignal(Signals.BUY_STOP, "Buy Signal");
+	    desc.declareSignal(Signals.SELL_STOP, "Sell Signal");
 	}
 	
 	@Override
@@ -133,7 +133,7 @@ public class FibonacciStrategy extends Study {
 	
 	@Override
 	public void onActivate(OrderContext ctx) {
-		//this.orderManager = new OrderManager(this, ctx, getSettings().getTradeLots(), getSettings().getInteger(SL_PIPS), getSettings().getInteger(TP_PIPS));
+		this.orderManager = new OrderManager(this, ttfSwingManager, trendManager, ctx, getSettings().getTradeLots(), getSettings().getInteger(SL_PIPS), getSettings().getInteger(TP_PIPS));
 	}
 	
 	public void drawMarkersAndLines() {
@@ -188,7 +188,7 @@ public class FibonacciStrategy extends Study {
 		
 		drawMarkersAndLines();
 		
-		//this.orderManager.update(series, series.getClose());
+		this.orderManager.update(series, series.getClose());
 
 		super.onBarClose(ctx);
 	}

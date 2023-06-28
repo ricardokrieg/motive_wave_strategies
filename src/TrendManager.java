@@ -199,7 +199,7 @@ public class TrendManager {
         this.reachedZone = false;
         this.invalidatedZone = false;
 
-        // this.study.debug(String.format("Wave 2 confirmed on index #%d", this.wave2Index));
+//        this.study.debug(String.format("Wave 2 confirmed on index #%d", this.wave2Index));
     }
 
     protected void checkWave(SwingPoint swing, SwingPoint lastSwingLow, SwingPoint lastSwingHigh) {
