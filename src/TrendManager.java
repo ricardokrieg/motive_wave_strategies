@@ -26,8 +26,6 @@ public class TrendManager {
     double retraction50;
     double retraction618;
     boolean validRetraction;
-    boolean reachedZone;
-    boolean invalidatedZone;
 
     public TrendManager(FibonacciStrategy study, SwingManager swingManager) {
         this.study = study;
@@ -47,8 +45,6 @@ public class TrendManager {
         this.retraction50 = 0;
         this.retraction618 = 0;
         this.validRetraction = false;
-        this.reachedZone = false;
-        this.invalidatedZone = false;
     }
 
     public void update(DataSeries series) {
@@ -89,6 +85,8 @@ public class TrendManager {
                             leadingSwingLow = lastSwingLow;
                         }
                     } else {
+                        this.onWave2 = false;
+
                         if (leadingSwingLow != null) {
                             if (swing.getValue() < leadingSwingLow.getValue()) {
                                 lowestSwingLow = swing;
@@ -108,6 +106,8 @@ public class TrendManager {
                             leadingSwingHigh = lastSwingHigh;
                         }
                     } else {
+                        this.onWave2 = false;
+
                         if (leadingSwingHigh != null) {
                             if (swing.getValue() > leadingSwingHigh.getValue()) {
                                 highestSwingHigh = swing;
@@ -122,8 +122,8 @@ public class TrendManager {
                     }
                 }
 
-                // TODO trading all swings
-                this.checkWave(swing, lastSwingLow, lastSwingHigh);
+                // trading all swings (remove?)
+                // this.checkWave(swing, lastSwingLow, lastSwingHigh);
             }
 
             if (swing.isTop())
@@ -132,7 +132,7 @@ public class TrendManager {
                 lastSwingLow = swing;
         }
 
-        this.study.debug("Current Trend: " + currentTrend);
+        // this.study.debug("Current Trend: " + currentTrend);
     }
 
     protected void computeRetraction(DataSeries series) {
@@ -196,8 +196,6 @@ public class TrendManager {
     protected void confirmWave2(SwingPoint swing) {
         this.onWave2 = true;
         this.wave2Index = swing.getIndex();
-        this.reachedZone = false;
-        this.invalidatedZone = false;
 
 //        this.study.debug(String.format("Wave 2 confirmed on index #%d", this.wave2Index));
     }

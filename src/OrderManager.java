@@ -17,6 +17,10 @@ public class OrderManager {
     OrderContext ctx;
     int qty;
     Order order;
+    Order orderSL;
+    Order orderTP;
+    float orderSLEntry;
+    float orderTPEntry;
 
     int slPips;
     int tpPips;
@@ -38,11 +42,17 @@ public class OrderManager {
         this.tpPips = tpPips;
 
         this.order = null;
+        this.orderSL = null;
+        this.orderTP = null;
+        this.orderSLEntry = -1;
+        this.orderTPEntry = -1;
     }
 
     public void update(DataSeries series, float price) {
         if (this.ctx.getPosition() == 0) {
             this.observe(series);
+        } else {
+            this.manageOrders(series);
         }
     }
 
@@ -64,41 +74,79 @@ public class OrderManager {
             }
         }
 
+        if (this.order != null) {
+            return;
+        }
+
+        if (this.trendManager.maxRetraction > 50.0f) {
+            this.study.debug("Skip trade because retraction was bigger than 50%");
+            return;
+        }
+
         if (this.trendManager.currentTrend == "up") {
-            double entry = this.trendManager.retraction50;
-            double sl = entry - series.getInstrument().getPointSize() * (float)slPips;
-            double tp = entry + series.getInstrument().getPointSize() * (float)tpPips;
+            float entry = (float)this.trendManager.retraction50;
+            float sl = entry - (float)series.getInstrument().getPointSize() * (float)this.slPips;
+            float tp = entry + (float)series.getInstrument().getPointSize() * (float)this.tpPips;
 
             this.study.debug(String.format("BUY LMT @ %.5f (%d)", entry, this.qty));
             this.study.debug(String.format("SL @ %.5f", sl));
             this.study.debug(String.format("TP @ %.5f", tp));
 
-            this.order = this.ctx.createLimitOrder(OrderAction.BUY, TIF.GTC, this.qty, (float)entry);
+            this.order = this.ctx.createLimitOrder(OrderAction.BUY, TIF.GTC, this.qty, entry);
+            this.orderSLEntry = sl;
+            this.orderTPEntry = tp;
         } else if (this.trendManager.currentTrend == "down") {
-            double entry = this.trendManager.retraction50;
-            double sl = entry + series.getInstrument().getPointSize() * (float)slPips;
-            double tp = entry - series.getInstrument().getPointSize() * (float)tpPips;
+            float entry = (float)this.trendManager.retraction50;
+            float sl = entry + (float)series.getInstrument().getPointSize() * (float)this.slPips;
+            float tp = entry - (float)series.getInstrument().getPointSize() * (float)this.tpPips;
 
             this.study.debug(String.format("SELL LMT @ %.5f (%d)", entry, this.qty));
             this.study.debug(String.format("SL @ %.5f", sl));
             this.study.debug(String.format("TP @ %.5f", tp));
 
-            this.order = this.ctx.createLimitOrder(OrderAction.SELL, TIF.GTC, this.qty, (float)entry);
+            this.order = this.ctx.createLimitOrder(OrderAction.SELL, TIF.GTC, this.qty, entry);
+            this.orderSLEntry = sl;
+            this.orderTPEntry = tp;
         }
     }
 
-    protected double getEntry(DataSeries series, SwingPoint swing, boolean isBuy) {
-        double pointSize = series.getInstrument().getPointSize();
-        double spread = series.getInstrument().getSpread();
-        //double diff = (pointSize * spread) + pointSize;
-        double diff = pointSize * spread;
+    protected void manageOrders(DataSeries series) {
+        if (this.order != null) {
+            if (this.order.exists()) {
+                if (this.order.isFilled()) {
+                    if (this.orderSLEntry != -1 || this.orderTPEntry != -1) {
+                        OrderAction orderAction;
 
-        if (isBuy)
-            return swing.getValue() + diff;
-        else
-            return swing.getValue() - diff;
+                        if (this.order.isBuy()) {
+                            orderAction = OrderAction.SELL;
+                        } else {
+                            orderAction = OrderAction.BUY;
+                        }
+
+                        this.orderSL = this.ctx.createStopOrder(orderAction, TIF.GTC, this.qty, this.orderSLEntry);
+                        this.orderTP = this.ctx.createLimitOrder(orderAction, TIF.GTC, this.qty, this.orderTPEntry);
+
+                        this.orderSLEntry = this.orderTPEntry = -1;
+                    }
+                }
+            } else {
+                this.order = null;
+            }
+        }
+
+        if (this.orderSL != null && this.orderSL.exists() && this.orderSL.isFilled()) {
+            this.orderSL = this.orderTP = this.order = null;
+
+            this.ctx.cancelOrders();
+        }
+        if (this.orderTP != null && this.orderTP.exists() && this.orderTP.isFilled()) {
+            this.orderSL = this.orderTP = this.order = null;
+
+            this.ctx.cancelOrders();
+        }
     }
 
+    /*
     protected double getMinSLDistance(DataSeries series) {
         double pointSize = series.getInstrument().getPointSize();
         this.study.debug(String.format("Tick Size: %.5f", series.getInstrument().getTickSize()));
@@ -107,4 +155,5 @@ public class OrderManager {
 
         return Util.max(pointSize * 10, pointSize * series.getInstrument().getSpread() * 5.0f);
     }
+    */
 }
