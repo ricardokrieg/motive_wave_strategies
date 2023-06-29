@@ -48,7 +48,7 @@ public class OrderManager {
         this.orderTPEntry = -1;
     }
 
-    public void update(DataSeries series, float price) {
+    public void update(DataSeries series) {
         if (this.ctx.getPosition() == 0) {
             this.observe(series);
         } else {

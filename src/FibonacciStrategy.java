@@ -188,7 +188,7 @@ public class FibonacciStrategy extends Study {
 		
 		drawMarkersAndLines();
 		
-		this.orderManager.update(series, series.getClose());
+		this.orderManager.update(series);
 
 		super.onBarClose(ctx);
 	}

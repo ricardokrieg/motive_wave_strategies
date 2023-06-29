@@ -19,8 +19,10 @@ public class TrendManager {
     String currentTrendForTrading;
     List<SwingPoint> changeOfTrendSwings;
 
-    SwingPoint currentSwing1;
-    SwingPoint currentSwing2;
+    SwingPoint swing1;
+    SwingPoint swing2;
+    SwingPoint currentSwing1; // TODO not used
+    SwingPoint currentSwing2; // TODO not used
     double currentDiff;
 
     double currentRetraction;
@@ -40,8 +42,10 @@ public class TrendManager {
         this.currentTrendForTrading = null;
         this.changeOfTrendSwings = new ArrayList<SwingPoint>();
 
-        this.currentSwing1 = null;
-        this.currentSwing2 = null;
+        this.swing1 = null;
+        this.swing2 = null;
+        this.currentSwing1 = null; // TODO not used
+        this.currentSwing2 = null; // TODO not used
         this.currentDiff = 0;
 
         this.currentRetraction = 0;
@@ -67,6 +71,9 @@ public class TrendManager {
         currentTrend = null;
         currentTrendForTrading = null;
         onWave2 = false;
+
+        this.swing1 = null;
+        this.swing2 = null;
 
         SwingPoint lastSwingHigh = null;
         SwingPoint lastSwingLow = null;
@@ -99,7 +106,7 @@ public class TrendManager {
                                 leadingSwingHigh = lastSwingHigh;
 
                                 currentTrend = currentTrendForTrading = "down";
-                                this.confirmWave2(swing);
+                                this.confirmWave2(leadingSwingHigh, swing);
                                 this.changeOfTrendSwings.add(swing);
                             }
                         }
@@ -120,7 +127,7 @@ public class TrendManager {
                                 leadingSwingLow = lastSwingLow;
 
                                 currentTrend = currentTrendForTrading = "up";
-                                this.confirmWave2(swing);
+                                this.confirmWave2(leadingSwingLow, swing);
                                 this.changeOfTrendSwings.add(swing);
                             }
                         }
@@ -145,7 +152,10 @@ public class TrendManager {
                             if (leadingSwingLow != null) {
                                 if (swing.getValue() < leadingSwingLow.getValue()) {
                                     this.currentTrendForTrading = "down";
-                                    this.confirmWave2(swing);
+                                    this.confirmWave2(lastSwingHigh, swing);
+
+                                    // TODO swing2 = swing
+                                    // TODO swing1 = lastSwingHigh
                                 }
                             }
                         }
@@ -154,7 +164,10 @@ public class TrendManager {
                             if (leadingSwingHigh != null) {
                                 if (swing.getValue() > leadingSwingHigh.getValue()) {
                                     this.currentTrendForTrading = "up";
-                                    this.confirmWave2(swing);
+                                    this.confirmWave2(lastSwingLow, swing);
+
+                                    // TODO swing2 = swing
+                                    // TODO swing1 = lastSwingLow
                                 }
                             }
                         }
@@ -177,8 +190,9 @@ public class TrendManager {
             return;
         }
 
-        SwingPoint swing1 = this.swingManager.swings.get(this.swingManager.swings.size() - 2);
-        SwingPoint swing2 = this.swingManager.swings.get(this.swingManager.swings.size() - 1);
+        // TODO remove
+        // SwingPoint swing1 = this.getSwing1();
+        // SwingPoint swing2 = this.getSwing2();
 
         if (swing1 == null || swing2 == null) {
             this.study.debug("Not enough swing points to compute retraction");
@@ -186,8 +200,8 @@ public class TrendManager {
         }
 
         this.validRetraction = true;
-        this.currentSwing1 = swing1;
-        this.currentSwing2 = swing2;
+        this.currentSwing1 = swing1; // TODO not used
+        this.currentSwing2 = swing2; // TODO not used
 
         if (swing2.isTop()) {
             double diff = swing2.getValue() - swing1.getValue();
@@ -225,12 +239,23 @@ public class TrendManager {
         this.study.debug(String.format("Retraction 61.8%%: %.5f", this.retraction618));
     }
 
-    protected void confirmWave2(SwingPoint swing) {
+    protected void confirmWave2(SwingPoint swing1, SwingPoint swing2) {
         this.onWave2 = true;
-        this.wave2Index = swing.getIndex();
+        this.wave2Index = swing2.getIndex();
+
+        this.swing1 = swing1;
+        this.swing2 = swing2;
 
         // this.study.debug(String.format("Wave 2 confirmed on index #%d", this.wave2Index));
     }
+
+//    protected SwingPoint getSwing1() {
+//        return this.swingManager.swings.get(this.swingManager.swings.size() - 2);
+//    }
+//
+//    protected SwingPoint getSwing2() {
+//        return this.swingManager.swings.get(this.swingManager.swings.size() - 1);
+//    }
 
     /*
     protected void checkWave(SwingPoint swing, SwingPoint lastSwingLow, SwingPoint lastSwingHigh) {
