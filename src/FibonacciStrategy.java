@@ -20,6 +20,7 @@ import com.motivewave.platform.sdk.common.desc.ValueDescriptor;
 import com.motivewave.platform.sdk.draw.Line;
 import com.motivewave.platform.sdk.draw.Marker;
 import com.motivewave.platform.sdk.order_mgmt.OrderContext;
+import com.motivewave.platform.sdk.order_mgmt.Order;
 import com.motivewave.platform.sdk.study.RuntimeDescriptor;
 import com.motivewave.platform.sdk.study.Study;
 import com.motivewave.platform.sdk.study.StudyHeader;
@@ -191,5 +192,20 @@ public class FibonacciStrategy extends Study {
 		this.orderManager.update(series);
 
 		super.onBarClose(ctx);
+	}
+
+	@Override
+	public void onOrderFilled(OrderContext ctx, Order order) {
+		this.orderManager.onOrderFilled(order);
+	}
+
+	@Override
+	public void onOrderCancelled(OrderContext ctx, Order order) {
+		this.orderManager.onOrderCancelled(order);
+	}
+
+	@Override
+	public void onOrderRejected(OrderContext ctx, Order order) {
+		this.orderManager.onOrderCancelled(order);
 	}
 }

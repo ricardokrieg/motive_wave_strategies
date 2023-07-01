@@ -52,8 +52,34 @@ public class OrderManager {
         if (this.ctx.getPosition() == 0) {
             this.observe(series);
         } else {
-            this.manageOrders(series);
+            // this.manageOrders(series);
         }
+    }
+
+    public void onOrderFilled(Order filledOrder) {
+        if (filledOrder == this.order) {
+            if (this.orderSLEntry != -1 || this.orderTPEntry != -1) {
+                OrderAction orderAction;
+
+                if (this.order.isBuy()) {
+                    orderAction = OrderAction.SELL;
+                } else {
+                    orderAction = OrderAction.BUY;
+                }
+
+                this.orderSL = this.ctx.createStopOrder(orderAction, TIF.GTC, this.qty, this.orderSLEntry);
+                this.orderTP = this.ctx.createLimitOrder(orderAction, TIF.GTC, this.qty, this.orderTPEntry);
+
+                this.orderSLEntry = this.orderTPEntry = -1;
+            }
+        } else if (filledOrder == this.orderSL || filledOrder == this.orderTP) {
+            this.ctx.cancelOrders();
+        }
+    }
+
+    public void onOrderCancelled(Order cancelledOrder) {
+        this.orderSL = this.orderTP = this.order = null;
+        this.orderSLEntry = this.orderTPEntry = -1;
     }
 
     //----------------------------------------------------------------------------------------------------------
@@ -110,6 +136,7 @@ public class OrderManager {
         }
     }
 
+    /*
     protected void manageOrders(DataSeries series) {
         if (this.order != null) {
             if (this.order.exists()) {
@@ -145,6 +172,7 @@ public class OrderManager {
             this.ctx.cancelOrders();
         }
     }
+    */
 
     /*
     protected double getMinSLDistance(DataSeries series) {

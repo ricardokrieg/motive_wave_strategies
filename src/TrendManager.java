@@ -21,8 +21,6 @@ public class TrendManager {
 
     SwingPoint swing1;
     SwingPoint swing2;
-    SwingPoint currentSwing1; // TODO not used
-    SwingPoint currentSwing2; // TODO not used
     double currentDiff;
 
     double currentRetraction;
@@ -44,8 +42,6 @@ public class TrendManager {
 
         this.swing1 = null;
         this.swing2 = null;
-        this.currentSwing1 = null; // TODO not used
-        this.currentSwing2 = null; // TODO not used
         this.currentDiff = 0;
 
         this.currentRetraction = 0;
@@ -200,8 +196,6 @@ public class TrendManager {
         }
 
         this.validRetraction = true;
-        this.currentSwing1 = swing1; // TODO not used
-        this.currentSwing2 = swing2; // TODO not used
 
         if (swing2.isTop()) {
             double diff = swing2.getValue() - swing1.getValue();
