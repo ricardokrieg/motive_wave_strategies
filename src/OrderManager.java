@@ -49,11 +49,9 @@ public class OrderManager {
     }
 
     public void update(DataSeries series) {
-        if (this.ctx.getPosition() == 0) {
-            this.observe(series);
-        } else {
-            // this.manageOrders(series);
-        }
+        if (this.ctx.getPosition() != 0) return;
+
+        this.observe(series);
     }
 
     public void onOrderFilled(Order filledOrder) {
@@ -86,15 +84,19 @@ public class OrderManager {
     //----------------------------------------------------------------------------------------------------------
 
     protected void observe(DataSeries series) {
-        if (!this.trendManager.onWave2) return;
-        if (!this.trendManager.validRetraction) return;
+        if (!this.trendManager.onWave2 || !this.trendManager.validRetraction) {
+            if (this.order != null) {
+                this.study.debug(String.format("Cancel pending order: %s", this.order.getOrderId()));
+                this.ctx.cancelOrders();
+            }
+
+            return;
+        }
 
         if (this.trendManager.currentRetraction <= 0) {
             if (this.order != null) {
                 this.study.debug(String.format("Cancel pending order: %s", this.order.getOrderId()));
                 this.ctx.cancelOrders();
-
-                this.order = null;
             } else {
                 return;
             }
