@@ -10,6 +10,10 @@ import com.motivewave.platform.sdk.order_mgmt.Order;
 
 
 public class OrderManager {
+    enum ExitMode { FIXED };
+
+    ExitMode exitMode;
+
     FibonacciStrategy study;
     SwingManager swingManager;
     TrendManager trendManager;
@@ -22,15 +26,17 @@ public class OrderManager {
     float orderSLEntry;
     float orderTPEntry;
 
-    int slPips;
-    int tpPips;
+    int fixedSLPips;
+    float RRR;
 
     final float retractionStart = 50.0f - 0.0f;
     final float retractionEnd = 61.8f + 0.0f;
     final float minEntryRetraction = 40.0f;
     final boolean tradingLimitOrders = true;
 
-    public OrderManager(FibonacciStrategy study, SwingManager swingManager, TrendManager trendManager, OrderContext ctx, int tradeLots, int slPips, int tpPips) {
+    public OrderManager(FibonacciStrategy study, SwingManager swingManager, TrendManager trendManager, OrderContext ctx, int tradeLots, int fixedSLPips, double RRR) {
+        this.exitMode = ExitMode.FIXED;
+
         this.study = study;
         this.swingManager = swingManager;
         this.trendManager = trendManager;
@@ -38,8 +44,8 @@ public class OrderManager {
         this.ctx = ctx;
         this.qty = tradeLots * ctx.getInstrument().getDefaultQuantity();
 
-        this.slPips = slPips;
-        this.tpPips = tpPips;
+        this.fixedSLPips = fixedSLPips;
+        this.RRR = (float)RRR;
 
         this.order = null;
         this.orderSL = null;
@@ -113,8 +119,8 @@ public class OrderManager {
 
         if (this.trendManager.currentTrendForTrading == "up") {
             float entry = (float)this.trendManager.retraction50;
-            float sl = entry - (float)series.getInstrument().getPointSize() * (float)this.slPips;
-            float tp = entry + (float)series.getInstrument().getPointSize() * (float)this.tpPips;
+            float sl = this.calculateSL(series, entry, OrderAction.BUY);
+            float tp = this.calculateTP(series, entry, OrderAction.BUY);
 
             this.study.debug(String.format("BUY LMT @ %.5f (%d)", entry, this.qty));
             this.study.debug(String.format("SL @ %.5f", sl));
@@ -125,8 +131,8 @@ public class OrderManager {
             this.orderTPEntry = tp;
         } else if (this.trendManager.currentTrendForTrading == "down") {
             float entry = (float)this.trendManager.retraction50;
-            float sl = entry + (float)series.getInstrument().getPointSize() * (float)this.slPips;
-            float tp = entry - (float)series.getInstrument().getPointSize() * (float)this.tpPips;
+            float sl = this.calculateSL(series, entry, OrderAction.SELL);
+            float tp = this.calculateTP(series, entry, OrderAction.SELL);
 
             this.study.debug(String.format("SELL LMT @ %.5f (%d)", entry, this.qty));
             this.study.debug(String.format("SL @ %.5f", sl));
@@ -135,6 +141,22 @@ public class OrderManager {
             this.order = this.ctx.createLimitOrder(OrderAction.SELL, TIF.GTC, this.qty, entry);
             this.orderSLEntry = sl;
             this.orderTPEntry = tp;
+        }
+    }
+
+    protected float calculateSL(DataSeries series, float entry, OrderAction orderAction) {
+        if (orderAction == OrderAction.BUY) {
+            return entry - (float)series.getInstrument().getPointSize() * (float)this.fixedSLPips;
+        } else {
+            return entry + (float)series.getInstrument().getPointSize() * (float)this.fixedSLPips;
+        }
+    }
+
+    protected float calculateTP(DataSeries series, float entry, OrderAction orderAction) {
+        if (orderAction == OrderAction.BUY) {
+            return entry + (float)series.getInstrument().getPointSize() * (float)this.fixedSLPips * this.RRR;
+        } else {
+            return entry - (float)series.getInstrument().getPointSize() * (float)this.fixedSLPips * this.RRR;
         }
     }
 

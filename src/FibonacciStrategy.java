@@ -10,6 +10,7 @@ import com.motivewave.platform.sdk.common.Enums;
 import com.motivewave.platform.sdk.common.Inputs;
 import com.motivewave.platform.sdk.common.SwingPoint;
 import com.motivewave.platform.sdk.common.Tick;
+import com.motivewave.platform.sdk.common.desc.DoubleDescriptor;
 import com.motivewave.platform.sdk.common.desc.IntegerDescriptor;
 import com.motivewave.platform.sdk.common.desc.MarkerDescriptor;
 import com.motivewave.platform.sdk.common.desc.PathDescriptor;
@@ -47,17 +48,21 @@ public class FibonacciStrategy extends Study {
 	enum Values { MA };
 	enum Signals { BUY_STOP, SELL_STOP };
 	
-	final static String SL_PIPS = "SLPips";
-	final static String TP_PIPS = "TPPips";
+	final static String FIXED_SL_PIPS = "FixedSLPips";
+	final static String RRR = "RiskRewardRatio";
+
     final static String LTF_STRENGTH = "ltfStrength";
     final static String TTF_STRENGTH = "ttfStrength";
     final static String HTF_STRENGTH = "htfStrength";
+
     final static String LTF_MARKER = "ltfMarker";
     final static String TTF_MARKER = "ttfMarker";
     final static String HTF_MARKER = "htfMarker";
+
     final static String LTF_LINE = "ltfLine";
     final static String TTF_LINE = "ttfLine";
     final static String HTF_LINE = "htfLine";
+
     final static String CHANGE_OF_TREND_MARKER = "changeOfTrendMarker";
 
     SwingManager ltfSwingManager;
@@ -80,8 +85,8 @@ public class FibonacciStrategy extends Study {
 	    inputs.addRow(new IntegerDescriptor(LTF_STRENGTH, "LTF Swing Point Strength", 2, 2, 9999, 1));
         inputs.addRow(new IntegerDescriptor(TTF_STRENGTH, "TTF Swing Point Strength", 10, 2, 9999, 1));
         inputs.addRow(new IntegerDescriptor(HTF_STRENGTH, "HTF Swing Point Strength", 50, 2, 9999, 1));
-	    inputs.addRow(new IntegerDescriptor(SL_PIPS, "Stop Loss Pips", 10, 5, 100, 1));
-	    inputs.addRow(new IntegerDescriptor(TP_PIPS, "Take Profit Pips", 10, 5, 100, 1));
+	    inputs.addRow(new IntegerDescriptor(FIXED_SL_PIPS, "Fixed Stop Loss Pips", 10, 5, 100, 1));
+	    inputs.addRow(new DoubleDescriptor(RRR, "Risk Reward Ratio", 1, 0.5, 10, 0.5));
 	    tab.addGroup(inputs);
 	    
 	    SettingGroup lines = new SettingGroup("Display");
@@ -134,7 +139,11 @@ public class FibonacciStrategy extends Study {
 	
 	@Override
 	public void onActivate(OrderContext ctx) {
-		this.orderManager = new OrderManager(this, ttfSwingManager, trendManager, ctx, getSettings().getTradeLots(), getSettings().getInteger(SL_PIPS), getSettings().getInteger(TP_PIPS));
+		this.orderManager = new OrderManager(
+				this, ttfSwingManager, trendManager, ctx,
+				getSettings().getTradeLots(),
+				getSettings().getInteger(FIXED_SL_PIPS), getSettings().getDouble(RRR)
+		);
 	}
 	
 	public void drawMarkersAndLines() {
