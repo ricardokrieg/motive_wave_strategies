@@ -68,6 +68,14 @@ public class TrendManager {
         }
     }
 
+    public double priceForProjection(float percentage, SwingPoint swing1, SwingPoint swing2, float entry) {
+        if (swing2.isTop()) {
+            return ((swing2.getValue() - swing1.getValue()) * percentage/100.0f) + entry;
+        } else {
+            return entry - ((swing1.getValue() - swing2.getValue()) * percentage/100.0f);
+        }
+    }
+
     //----------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------------------------------------
 
@@ -137,9 +145,6 @@ public class TrendManager {
                         }
                     }
                 }
-
-                // trading all swings (remove?)
-                // this.checkWave(swing, lastSwingLow, lastSwingHigh);
             }
 
             if (swing.isTop())
@@ -157,9 +162,6 @@ public class TrendManager {
                                 if (swing.getValue() < leadingSwingLow.getValue()) {
                                     this.currentTrendForTrading = "down";
                                     this.confirmWave2(lastSwingHigh, swing);
-
-                                    // TODO swing2 = swing
-                                    // TODO swing1 = lastSwingHigh
                                 }
                             }
                         }
@@ -169,9 +171,6 @@ public class TrendManager {
                                 if (swing.getValue() > leadingSwingHigh.getValue()) {
                                     this.currentTrendForTrading = "up";
                                     this.confirmWave2(lastSwingLow, swing);
-
-                                    // TODO swing2 = swing
-                                    // TODO swing1 = lastSwingLow
                                 }
                             }
                         }
@@ -193,10 +192,6 @@ public class TrendManager {
             this.study.debug("Not enough swing points to compute retraction");
             return;
         }
-
-        // TODO remove
-        // SwingPoint swing1 = this.getSwing1();
-        // SwingPoint swing2 = this.getSwing2();
 
         if (swing1 == null || swing2 == null) {
             this.study.debug("Not enough swing points to compute retraction");
@@ -250,30 +245,4 @@ public class TrendManager {
 
         // this.study.debug(String.format("Wave 2 confirmed on index #%d", this.wave2Index));
     }
-
-//    protected SwingPoint getSwing1() {
-//        return this.swingManager.swings.get(this.swingManager.swings.size() - 2);
-//    }
-//
-//    protected SwingPoint getSwing2() {
-//        return this.swingManager.swings.get(this.swingManager.swings.size() - 1);
-//    }
-
-    /*
-    protected void checkWave(SwingPoint swing, SwingPoint lastSwingLow, SwingPoint lastSwingHigh) {
-        if (swing.isTop()) {
-            if (lastSwingHigh == null) return;
-
-            if (swing.getValue() > lastSwingHigh.getValue()) {
-                this.confirmWave2(swing);
-            }
-        } else {
-            if (lastSwingLow == null) return;
-
-            if (swing.getValue() < lastSwingLow.getValue()) {
-                this.confirmWave2(swing);
-            }
-        }
-    }
-    */
 }

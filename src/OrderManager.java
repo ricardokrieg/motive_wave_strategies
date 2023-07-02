@@ -10,9 +10,11 @@ import com.motivewave.platform.sdk.order_mgmt.Order;
 
 
 public class OrderManager {
-    enum ExitMode { FIXED, PERC_RETRACTION };
+    enum ExitModeSL { FIXED, PERC_RETRACTION };
+    enum ExitModeTP { RRR, PERC_PROJECTION };
 
-    ExitMode exitMode;
+    ExitModeSL exitModeSL;
+    ExitModeTP exitModeTP;
 
     FibonacciStrategy study;
     SwingManager swingManager;
@@ -29,15 +31,17 @@ public class OrderManager {
     int fixedSLPips;
     int retractionSL;
     float RRR;
+    int projectionTP;
 
     final float retractionStart = 50.0f - 0.0f;
     final float retractionEnd = 61.8f + 0.0f;
     final float minEntryRetraction = 40.0f;
     final boolean tradingLimitOrders = true;
 
-    public OrderManager(FibonacciStrategy study, SwingManager swingManager, TrendManager trendManager, OrderContext ctx, int tradeLots, int fixedSLPips, int retractionSL, double RRR) {
-//        this.exitMode = ExitMode.FIXED;
-        this.exitMode = ExitMode.PERC_RETRACTION;
+    public OrderManager(FibonacciStrategy study, SwingManager swingManager, TrendManager trendManager, OrderContext ctx, int tradeLots, int fixedSLPips, int retractionSL, double RRR, int projectionTP) {
+//        this.exitModeSL = ExitModeSL.FIXED;
+        this.exitModeSL = ExitModeSL.PERC_RETRACTION;
+        this.exitModeTP = ExitModeTP.PERC_PROJECTION;
 
         this.study = study;
         this.swingManager = swingManager;
@@ -49,6 +53,7 @@ public class OrderManager {
         this.fixedSLPips = fixedSLPips;
         this.retractionSL = retractionSL;
         this.RRR = (float)RRR;
+        this.projectionTP = projectionTP;
 
         this.order = null;
         this.orderSL = null;
@@ -104,7 +109,7 @@ public class OrderManager {
 
         if (this.trendManager.currentRetraction <= 0) {
             if (this.order != null) {
-                this.study.debug(String.format("Cancel pending order: %s", this.order.getOrderId()));
+                this.study.debug(String.format("Retraction < 0, cancel pending order: %s", this.order.getOrderId()));
                 this.ctx.cancelOrders();
             } else {
                 return;
@@ -148,13 +153,13 @@ public class OrderManager {
     }
 
     protected float calculateSL(DataSeries series, float entry, OrderAction orderAction) {
-        if (this.exitMode == ExitMode.FIXED) {
+        if (this.exitModeSL == ExitModeSL.FIXED) {
             if (orderAction == OrderAction.BUY) {
                 return entry - calculateSLPips(series, entry, orderAction);
             } else {
                 return entry + calculateSLPips(series, entry, orderAction);
             }
-        } else if (this.exitMode == ExitMode.PERC_RETRACTION) {
+        } else if (this.exitModeSL == ExitModeSL.PERC_RETRACTION) {
             return (float)this.trendManager.priceForRetraction((float)this.retractionSL, this.trendManager.swing1, this.trendManager.swing2);
         }
 
@@ -162,9 +167,9 @@ public class OrderManager {
     }
 
     protected float calculateSLPips(DataSeries series, float entry, OrderAction orderAction) {
-        if (this.exitMode == ExitMode.FIXED) {
+        if (this.exitModeSL == ExitModeSL.FIXED) {
             return (float)series.getInstrument().getPointSize() * (float)this.fixedSLPips;
-        } else if (this.exitMode == ExitMode.PERC_RETRACTION) {
+        } else if (this.exitModeSL == ExitModeSL.PERC_RETRACTION) {
             if (orderAction == OrderAction.BUY) {
                 return entry - this.calculateSL(series, entry, orderAction);
             } else {
@@ -176,60 +181,32 @@ public class OrderManager {
     }
 
     protected float calculateTP(DataSeries series, float entry, OrderAction orderAction) {
-        if (orderAction == OrderAction.BUY) {
-            return entry + this.calculateTPPips(series, entry, orderAction);
-        } else {
-            return entry - this.calculateTPPips(series, entry, orderAction);
+        if (this.exitModeTP == ExitModeTP.RRR) {
+            if (orderAction == OrderAction.BUY) {
+                return entry + this.calculateTPPips(series, entry, orderAction);
+            } else {
+                return entry - this.calculateTPPips(series, entry, orderAction);
+            }
+        } else if (this.exitModeTP == ExitModeTP.PERC_PROJECTION) {
+            return (float)this.trendManager.priceForProjection((float)this.projectionTP, this.trendManager.swing1, this.trendManager.swing2, entry);
         }
+
+        return -1.0f;
     }
 
     protected float calculateTPPips(DataSeries series, float entry, OrderAction orderAction) {
-        if (this.exitMode == ExitMode.FIXED) {
+        if (this.exitModeTP == ExitModeTP.RRR) {
             return this.calculateSLPips(series, entry, orderAction) * this.RRR;
-        } else if (this.exitMode == ExitMode.PERC_RETRACTION) {
-            return this.calculateSLPips(series, entry, orderAction) * this.RRR;
+        } else if (this.exitModeTP == ExitModeTP.PERC_PROJECTION) {
+            if (orderAction == OrderAction.BUY) {
+                return this.calculateTP(series, entry, orderAction) - entry;
+            } else {
+                return  entry - this.calculateTP(series, entry, orderAction);
+            }
         }
 
         return 0;
     }
-
-    /*
-    protected void manageOrders(DataSeries series) {
-        if (this.order != null) {
-            if (this.order.exists()) {
-                if (this.order.isFilled()) {
-                    if (this.orderSLEntry != -1 || this.orderTPEntry != -1) {
-                        OrderAction orderAction;
-
-                        if (this.order.isBuy()) {
-                            orderAction = OrderAction.SELL;
-                        } else {
-                            orderAction = OrderAction.BUY;
-                        }
-
-                        this.orderSL = this.ctx.createStopOrder(orderAction, TIF.GTC, this.qty, this.orderSLEntry);
-                        this.orderTP = this.ctx.createLimitOrder(orderAction, TIF.GTC, this.qty, this.orderTPEntry);
-
-                        this.orderSLEntry = this.orderTPEntry = -1;
-                    }
-                }
-            } else {
-                this.order = null;
-            }
-        }
-
-        if (this.orderSL != null && this.orderSL.exists() && this.orderSL.isFilled()) {
-            this.orderSL = this.orderTP = this.order = null;
-
-            this.ctx.cancelOrders();
-        }
-        if (this.orderTP != null && this.orderTP.exists() && this.orderTP.isFilled()) {
-            this.orderSL = this.orderTP = this.order = null;
-
-            this.ctx.cancelOrders();
-        }
-    }
-    */
 
     /*
     protected double getMinSLDistance(DataSeries series) {
