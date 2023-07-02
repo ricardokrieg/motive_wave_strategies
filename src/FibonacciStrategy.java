@@ -49,6 +49,7 @@ public class FibonacciStrategy extends Study {
 	enum Signals { BUY_STOP, SELL_STOP };
 	
 	final static String FIXED_SL_PIPS = "FixedSLPips";
+	final static String RETRACTION_SL = "RetractionSL";
 	final static String RRR = "RiskRewardRatio";
 
     final static String LTF_STRENGTH = "ltfStrength";
@@ -86,6 +87,7 @@ public class FibonacciStrategy extends Study {
         inputs.addRow(new IntegerDescriptor(TTF_STRENGTH, "TTF Swing Point Strength", 10, 2, 9999, 1));
         inputs.addRow(new IntegerDescriptor(HTF_STRENGTH, "HTF Swing Point Strength", 50, 2, 9999, 1));
 	    inputs.addRow(new IntegerDescriptor(FIXED_SL_PIPS, "Fixed Stop Loss Pips", 10, 5, 100, 1));
+	    inputs.addRow(new IntegerDescriptor(RETRACTION_SL, "Retraction Stop Loss", 100, 0, 200, 1));
 	    inputs.addRow(new DoubleDescriptor(RRR, "Risk Reward Ratio", 1, 0.5, 10, 0.5));
 	    tab.addGroup(inputs);
 	    
@@ -142,7 +144,8 @@ public class FibonacciStrategy extends Study {
 		this.orderManager = new OrderManager(
 				this, ttfSwingManager, trendManager, ctx,
 				getSettings().getTradeLots(),
-				getSettings().getInteger(FIXED_SL_PIPS), getSettings().getDouble(RRR)
+				getSettings().getInteger(FIXED_SL_PIPS), getSettings().getInteger(RETRACTION_SL),
+                getSettings().getDouble(RRR)
 		);
 	}
 	

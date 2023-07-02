@@ -60,6 +60,14 @@ public class TrendManager {
         this.changeOfTrendSwings.clear();
     }
 
+    public double priceForRetraction(float percentage, SwingPoint swing1, SwingPoint swing2) {
+        if (swing2.isTop()) {
+            return swing1.getValue() + this.currentDiff * (1.0f - percentage/100.0f);
+        } else {
+            return swing1.getValue() - this.currentDiff * (1.0f - percentage/100.0f);
+        }
+    }
+
     //----------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------------------------------------
 
@@ -201,8 +209,8 @@ public class TrendManager {
             double diff = swing2.getValue() - swing1.getValue();
             this.currentDiff = diff;
 
-            this.retraction50 = diff * 0.5f + swing1.getValue();
-            this.retraction618 = diff * (1.0f - 0.618f) + swing1.getValue();
+            this.retraction50 = this.priceForRetraction(50.0f, swing1, swing2);
+            this.retraction618 = this.priceForRetraction(61.8f, swing1, swing2);
             this.currentRetraction = (swing2.getValue() - series.getClose()) * 100.0f / diff;
 
             double lowest = series.getLow();
@@ -214,8 +222,8 @@ public class TrendManager {
             double diff = swing1.getValue() - swing2.getValue();
             this.currentDiff = diff;
 
-            this.retraction50 = diff * 0.5f + swing2.getValue();
-            this.retraction618 = diff * (1.0f - 0.618f) + swing2.getValue();
+            this.retraction50 = this.priceForRetraction(50.0f, swing1, swing2);
+            this.retraction618 = this.priceForRetraction(61.8f, swing1, swing2);
             this.currentRetraction = (series.getClose() - swing2.getValue()) * 100.0f / diff;
 
             double highest = series.getHigh();

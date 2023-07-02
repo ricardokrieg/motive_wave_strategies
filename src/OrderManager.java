@@ -10,7 +10,7 @@ import com.motivewave.platform.sdk.order_mgmt.Order;
 
 
 public class OrderManager {
-    enum ExitMode { FIXED };
+    enum ExitMode { FIXED, PERC_RETRACTION };
 
     ExitMode exitMode;
 
@@ -27,6 +27,7 @@ public class OrderManager {
     float orderTPEntry;
 
     int fixedSLPips;
+    int retractionSL;
     float RRR;
 
     final float retractionStart = 50.0f - 0.0f;
@@ -34,8 +35,9 @@ public class OrderManager {
     final float minEntryRetraction = 40.0f;
     final boolean tradingLimitOrders = true;
 
-    public OrderManager(FibonacciStrategy study, SwingManager swingManager, TrendManager trendManager, OrderContext ctx, int tradeLots, int fixedSLPips, double RRR) {
-        this.exitMode = ExitMode.FIXED;
+    public OrderManager(FibonacciStrategy study, SwingManager swingManager, TrendManager trendManager, OrderContext ctx, int tradeLots, int fixedSLPips, int retractionSL, double RRR) {
+//        this.exitMode = ExitMode.FIXED;
+        this.exitMode = ExitMode.PERC_RETRACTION;
 
         this.study = study;
         this.swingManager = swingManager;
@@ -45,6 +47,7 @@ public class OrderManager {
         this.qty = tradeLots * ctx.getInstrument().getDefaultQuantity();
 
         this.fixedSLPips = fixedSLPips;
+        this.retractionSL = retractionSL;
         this.RRR = (float)RRR;
 
         this.order = null;
@@ -145,19 +148,49 @@ public class OrderManager {
     }
 
     protected float calculateSL(DataSeries series, float entry, OrderAction orderAction) {
-        if (orderAction == OrderAction.BUY) {
-            return entry - (float)series.getInstrument().getPointSize() * (float)this.fixedSLPips;
-        } else {
-            return entry + (float)series.getInstrument().getPointSize() * (float)this.fixedSLPips;
+        if (this.exitMode == ExitMode.FIXED) {
+            if (orderAction == OrderAction.BUY) {
+                return entry - calculateSLPips(series, entry, orderAction);
+            } else {
+                return entry + calculateSLPips(series, entry, orderAction);
+            }
+        } else if (this.exitMode == ExitMode.PERC_RETRACTION) {
+            return (float)this.trendManager.priceForRetraction((float)this.retractionSL, this.trendManager.swing1, this.trendManager.swing2);
         }
+
+        return -1.0f;
+    }
+
+    protected float calculateSLPips(DataSeries series, float entry, OrderAction orderAction) {
+        if (this.exitMode == ExitMode.FIXED) {
+            return (float)series.getInstrument().getPointSize() * (float)this.fixedSLPips;
+        } else if (this.exitMode == ExitMode.PERC_RETRACTION) {
+            if (orderAction == OrderAction.BUY) {
+                return entry - this.calculateSL(series, entry, orderAction);
+            } else {
+                return this.calculateSL(series, entry, orderAction) - entry;
+            }
+        }
+
+        return 0;
     }
 
     protected float calculateTP(DataSeries series, float entry, OrderAction orderAction) {
         if (orderAction == OrderAction.BUY) {
-            return entry + (float)series.getInstrument().getPointSize() * (float)this.fixedSLPips * this.RRR;
+            return entry + this.calculateTPPips(series, entry, orderAction);
         } else {
-            return entry - (float)series.getInstrument().getPointSize() * (float)this.fixedSLPips * this.RRR;
+            return entry - this.calculateTPPips(series, entry, orderAction);
         }
+    }
+
+    protected float calculateTPPips(DataSeries series, float entry, OrderAction orderAction) {
+        if (this.exitMode == ExitMode.FIXED) {
+            return this.calculateSLPips(series, entry, orderAction) * this.RRR;
+        } else if (this.exitMode == ExitMode.PERC_RETRACTION) {
+            return this.calculateSLPips(series, entry, orderAction) * this.RRR;
+        }
+
+        return 0;
     }
 
     /*
