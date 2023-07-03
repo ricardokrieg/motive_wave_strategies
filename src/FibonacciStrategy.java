@@ -197,7 +197,7 @@ public class FibonacciStrategy extends Study {
 		Instant before, after;
 		long delta;
 
-		before = Instant.now();
+//		before = Instant.now();
 		clear();
 //		after = Instant.now();
 //		debug(String.format("Clear: %d ms", Duration.between(before, after).toMillis()));
@@ -223,9 +223,9 @@ public class FibonacciStrategy extends Study {
 
 //		before = Instant.now();
 		this.orderManager.update(series);
-		after = Instant.now();
+//		after = Instant.now();
 //		debug(String.format("OrderManager.update: %d ms", Duration.between(before, after).toMillis()));
-		debug(String.format("Duration: %d ms", Duration.between(before, after).toMillis()));
+//		debug(String.format("Duration: %d ms", Duration.between(before, after).toMillis()));
 
 		super.onBarClose(ctx);
 	}
@@ -249,6 +249,6 @@ public class FibonacciStrategy extends Study {
 	public void onSessionEnded(OrderContext ctx, TimeFrame timeFrame) {
 		super.onSessionEnded(ctx, timeFrame);
 
-		ctx.cancelOrders();
+		this.orderManager.cancelAllOrders();
 	}
 }

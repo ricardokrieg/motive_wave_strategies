@@ -68,6 +68,20 @@ public class OrderManager {
         this.observe(series);
     }
 
+    public void cancelAllOrders() {
+        this.ctx.cancelOrders();
+
+        if (this.order != null) {
+            this.ctx.cancelOrders(this.order);
+        }
+        if (this.orderSL != null) {
+            this.ctx.cancelOrders(this.orderSL);
+        }
+        if (this.orderTP != null) {
+            this.ctx.cancelOrders(this.orderTP);
+        }
+    }
+
     public void onOrderFilled(Order filledOrder) {
         if (filledOrder == this.order) {
             if (this.orderSLEntry != -1 || this.orderTPEntry != -1) {
@@ -90,8 +104,15 @@ public class OrderManager {
     }
 
     public void onOrderCancelled(Order cancelledOrder) {
-        this.orderSL = this.orderTP = this.order = null;
-        this.orderSLEntry = this.orderTPEntry = -1;
+        if (cancelledOrder == this.order) {
+            this.order = null;
+        } else if (cancelledOrder == this.orderSL) {
+            this.orderSL = null;
+            this.orderSLEntry = -1;
+        } else if (cancelledOrder == this.orderTP) {
+            this.orderTP = null;
+            this.orderTPEntry =  -1;
+        }
     }
 
     //----------------------------------------------------------------------------------------------------------
