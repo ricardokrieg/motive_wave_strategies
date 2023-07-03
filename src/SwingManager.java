@@ -26,7 +26,7 @@ public class SwingManager {
 		
 		this.swings = new ArrayList<SwingPoint>();
 	}
-	
+
 	public void update(DataSeries series) {
 		List<SwingPoint> swingsHigh = this.computeSwings(series, true);
 		List<SwingPoint> swingsLow = this.computeSwings(series, false);

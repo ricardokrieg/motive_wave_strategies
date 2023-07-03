@@ -1,5 +1,6 @@
 package ricardo_franco;
 
+import java.time.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -87,10 +88,10 @@ public class FibonacciStrategy extends Study {
 	    inputs.addRow(new IntegerDescriptor(LTF_STRENGTH, "LTF Swing Point Strength", 2, 2, 9999, 1));
         inputs.addRow(new IntegerDescriptor(TTF_STRENGTH, "TTF Swing Point Strength", 10, 2, 9999, 1));
         inputs.addRow(new IntegerDescriptor(HTF_STRENGTH, "HTF Swing Point Strength", 50, 2, 9999, 1));
-	    inputs.addRow(new IntegerDescriptor(FIXED_SL_PIPS, "Fixed Stop Loss Pips", 10, 5, 100, 1));
-	    inputs.addRow(new IntegerDescriptor(RETRACTION_SL, "Retraction Stop Loss", 120, 0, 200, 1));
-	    inputs.addRow(new IntegerDescriptor(PROJECTION_TP, "Projection Take Profit", 100, 0, 999, 1));
-	    inputs.addRow(new DoubleDescriptor(RRR, "Risk Reward Ratio", 1, 0, 10, 0.5));
+	    inputs.addRow(new IntegerDescriptor(FIXED_SL_PIPS, "Fixed Stop Loss Pips", 10, 0, 999, 1));
+	    inputs.addRow(new IntegerDescriptor(RETRACTION_SL, "Retraction Stop Loss", 110, 0, 999, 1));
+	    inputs.addRow(new IntegerDescriptor(PROJECTION_TP, "Projection Take Profit", 95, 0, 999, 1));
+	    inputs.addRow(new DoubleDescriptor(RRR, "Risk Reward Ratio", 1, 0, 999, 0.5));
 	    tab.addGroup(inputs);
 	    
 	    SettingGroup lines = new SettingGroup("Display");
@@ -192,18 +193,38 @@ public class FibonacciStrategy extends Study {
 	
 	@Override
 	public void onBarClose(DataContext ctx) {
+		Instant before, after;
+		long delta;
+
+		before = Instant.now();
 		clear();
-		
+//		after = Instant.now();
+//		debug(String.format("Clear: %d ms", Duration.between(before, after).toMillis()));
+
 		DataSeries series = ctx.getDataSeries();
-		
+
+//		before = Instant.now();
 		this.ltfSwingManager.update(series);
         this.ttfSwingManager.update(series);
         this.htfSwingManager.update(series);
+//		after = Instant.now();
+//		debug(String.format("SwingManager.update: %d ms", Duration.between(before, after).toMillis()));
+
+//		before = Instant.now();
 		this.trendManager.update(series);
-		
+//		after = Instant.now();
+//		debug(String.format("TrendManager.update: %d ms", Duration.between(before, after).toMillis()));
+
+//		before = Instant.now();
 		drawMarkersAndLines();
-		
+//		after = Instant.now();
+//		debug(String.format("darMarkersAndLines: %d ms", Duration.between(before, after).toMillis()));
+
+//		before = Instant.now();
 		this.orderManager.update(series);
+		after = Instant.now();
+//		debug(String.format("OrderManager.update: %d ms", Duration.between(before, after).toMillis()));
+		debug(String.format("Duration: %d ms", Duration.between(before, after).toMillis()));
 
 		super.onBarClose(ctx);
 	}
