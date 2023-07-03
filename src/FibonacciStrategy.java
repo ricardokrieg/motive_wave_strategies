@@ -242,7 +242,7 @@ public class FibonacciStrategy extends Study {
 
 	@Override
 	public void onOrderRejected(OrderContext ctx, Order order) {
-		this.orderManager.onOrderCancelled(order);
+		this.orderManager.onOrderRejected(order);
 	}
 
 	@Override

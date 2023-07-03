@@ -4,6 +4,7 @@ import com.motivewave.platform.sdk.common.DataSeries;
 import com.motivewave.platform.sdk.common.SwingPoint;
 import com.motivewave.platform.sdk.common.Util;
 import com.motivewave.platform.sdk.common.Enums.OrderAction;
+import com.motivewave.platform.sdk.common.Enums.StrategyState;
 import com.motivewave.platform.sdk.common.Enums.TIF;
 import com.motivewave.platform.sdk.order_mgmt.OrderContext;
 import com.motivewave.platform.sdk.order_mgmt.Order;
@@ -63,28 +64,44 @@ public class OrderManager {
     }
 
     public void update(DataSeries series) {
-        if (this.ctx.getPosition() != 0) return;
+        this.study.debug(String.format("Order? %b", this.order != null));
+        this.study.debug(String.format("OrderSL? %b", this.orderSL != null));
+        this.study.debug(String.format("OrderTP? %b", this.orderTP != null));
 
-        this.observe(series);
+        if (this.ctx.getPosition() == 0) {
+            this.observe(series);
+        } else {
+            if (order == null) {
+                this.study.error(String.format("ERROR: Position is open but there's no Order. Closing all."));
+                this.cancelAllOrders();
+            }
+        }
     }
 
     public void cancelAllOrders() {
-        this.ctx.cancelOrders();
+//        if (this.order != null) {
+//            this.ctx.cancelOrders(this.order);
+//            this.order = null;
+//        }
+//        if (this.orderSL != null) {
+//            this.ctx.cancelOrders(this.orderSL);
+//            this.orderSL = null;
+//            this.orderSLEntry = -1;
+//        }
+//        if (this.orderTP != null) {
+//            this.ctx.cancelOrders(this.orderTP);
+//            this.orderTP = null;
+//            this.orderTPEntry = -1;
+//        }
 
-        if (this.order != null) {
-            this.ctx.cancelOrders(this.order);
-        }
-        if (this.orderSL != null) {
-            this.ctx.cancelOrders(this.orderSL);
-        }
-        if (this.orderTP != null) {
-            this.ctx.cancelOrders(this.orderTP);
-        }
+        this.orderSL = this.orderTP = this.order = null;
+        this.orderSLEntry = this.orderTPEntry = -1;
+        this.ctx.cancelOrders();
     }
 
     public void onOrderFilled(Order filledOrder) {
-        if (filledOrder == this.order) {
-            if (this.orderSLEntry != -1 || this.orderTPEntry != -1) {
+        if (this.order != null && filledOrder.getOrderId() == this.order.getOrderId()) {
+            if (this.orderSLEntry != -1 && this.orderTPEntry != -1) {
                 OrderAction orderAction;
 
                 if (this.order.isBuy()) {
@@ -98,20 +115,36 @@ public class OrderManager {
 
                 this.orderSLEntry = this.orderTPEntry = -1;
             }
-        } else if (filledOrder == this.orderSL || filledOrder == this.orderTP) {
-            this.ctx.cancelOrders();
+        } else if (this.orderSL != null && filledOrder.getOrderId() == this.orderSL.getOrderId()) {
+            this.cancelAllOrders();
+        } else if (this.orderTP != null && filledOrder.getOrderId() == this.orderTP.getOrderId()) {
+            this.cancelAllOrders();
         }
     }
 
     public void onOrderCancelled(Order cancelledOrder) {
-        if (cancelledOrder == this.order) {
-            this.order = null;
-        } else if (cancelledOrder == this.orderSL) {
+        if (this.order != null && cancelledOrder.getOrderId() == this.order.getOrderId()) {
+            this.cancelAllOrders();
+            this.ctx.closeAtMarket();
+        } else if (this.orderSL != null && cancelledOrder.getOrderId() == this.orderSL.getOrderId()) {
             this.orderSL = null;
             this.orderSLEntry = -1;
-        } else if (cancelledOrder == this.orderTP) {
+        } else if (this.orderTP != null && cancelledOrder.getOrderId() == this.orderTP.getOrderId()) {
             this.orderTP = null;
             this.orderTPEntry =  -1;
+        }
+    }
+
+    public void onOrderRejected(Order rejectedOrder) {
+        if (this.order != null && rejectedOrder.getOrderId() == this.order.getOrderId()) {
+            this.cancelAllOrders();
+            this.ctx.closeAtMarket();
+        } else if (this.orderSL != null && rejectedOrder.getOrderId() == this.orderSL.getOrderId()) {
+            this.cancelAllOrders();
+            this.ctx.closeAtMarket();
+        } else if (this.orderTP != null && rejectedOrder.getOrderId() == this.orderTP.getOrderId()) {
+            this.cancelAllOrders();
+            this.ctx.closeAtMarket();
         }
     }
 
@@ -122,7 +155,7 @@ public class OrderManager {
         if (!this.trendManager.onWave2 || !this.trendManager.validRetraction) {
             if (this.order != null) {
                 this.study.debug(String.format("Cancel pending order: %s", this.order.getOrderId()));
-                this.ctx.cancelOrders();
+                this.cancelAllOrders();
             }
 
             return;
@@ -131,7 +164,7 @@ public class OrderManager {
         if (this.trendManager.currentRetraction <= 0) {
             if (this.order != null) {
                 this.study.debug(String.format("Retraction < 0, cancel pending order: %s", this.order.getOrderId()));
-                this.ctx.cancelOrders();
+                this.cancelAllOrders();
             } else {
                 return;
             }
@@ -143,6 +176,11 @@ public class OrderManager {
 
         if (this.trendManager.maxRetraction > 50.0f) {
             this.study.debug("Skip trade because retraction was bigger than 50%");
+            return;
+        }
+
+        if (this.study.getState() != StrategyState.ACTIVE) {
+            this.study.debug("Skip trade because state is not ACTIVE");
             return;
         }
 
