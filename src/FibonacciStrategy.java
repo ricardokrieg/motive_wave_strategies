@@ -11,6 +11,7 @@ import com.motivewave.platform.sdk.common.Enums;
 import com.motivewave.platform.sdk.common.Inputs;
 import com.motivewave.platform.sdk.common.SwingPoint;
 import com.motivewave.platform.sdk.common.Tick;
+import com.motivewave.platform.sdk.common.TimeFrame;
 import com.motivewave.platform.sdk.common.desc.DoubleDescriptor;
 import com.motivewave.platform.sdk.common.desc.IntegerDescriptor;
 import com.motivewave.platform.sdk.common.desc.MarkerDescriptor;
@@ -242,5 +243,12 @@ public class FibonacciStrategy extends Study {
 	@Override
 	public void onOrderRejected(OrderContext ctx, Order order) {
 		this.orderManager.onOrderCancelled(order);
+	}
+
+	@Override
+	public void onSessionEnded(OrderContext ctx, TimeFrame timeFrame) {
+		super.onSessionEnded(ctx, timeFrame);
+
+		ctx.cancelOrders();
 	}
 }
